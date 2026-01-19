@@ -11,8 +11,7 @@ public class Juego {
     private Date fechaLanzamiento;
     private String urlPortada;
     private String urlFondo;
-    private float notaMedia;
-    private int numeroReviews;
+    private ArrayList<Integer> notas;
     private int minutosDuracion;
     private int minutosDuracionCompleto;
     private ArrayList<String> plataformas;
@@ -24,6 +23,14 @@ public class Juego {
     private Date fechaActualizacion;
 
     public Juego() {}
+
+    public ArrayList<Integer> getNotas() {
+        return notas;
+    }
+
+    public void setNotas(ArrayList<Integer> notas) {
+        this.notas = notas;
+    }
 
     public String getId() {
         return id;
@@ -81,21 +88,7 @@ public class Juego {
         this.urlFondo = urlFondo;
     }
 
-    public float getNotaMedia() {
-        return notaMedia;
-    }
 
-    public void setNotaMedia(float notaMedia) {
-        this.notaMedia = notaMedia;
-    }
-
-    public int getNumeroReviews() {
-        return numeroReviews;
-    }
-
-    public void setNumeroReviews(int numeroReviews) {
-        this.numeroReviews = numeroReviews;
-    }
 
     public ArrayList<String> getPlataformas() {
         return plataformas;
@@ -167,5 +160,16 @@ public class Juego {
 
     public void setMinutosDuracionCompleto(int minutosDuracionCompleto) {
         this.minutosDuracionCompleto = minutosDuracionCompleto;
+    }
+
+    public float getNotaMedia() {
+        int cont = 0,sum = 0;
+        for (Integer nota : notas) {
+            if (nota >= 0) {
+                cont++;
+                sum += nota;
+            }
+        }
+        return (float) sum / cont;
     }
 }

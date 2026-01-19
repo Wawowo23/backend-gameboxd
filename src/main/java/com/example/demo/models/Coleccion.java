@@ -5,6 +5,7 @@ import java.util.Date;
 
 public class Coleccion {
     private String id;
+    private String idUsuario;
     private String nombre;
     private String descripcion;
     private ArrayList<String> juegos;
@@ -13,6 +14,14 @@ public class Coleccion {
     private Date fechaActualizacion;
 
     public Coleccion() {}
+
+    public String getIdUsuario() {
+        return idUsuario;
+    }
+
+    public void setIdUsuario(String idUsuario) {
+        this.idUsuario = idUsuario;
+    }
 
     public String getId() {
         return id;

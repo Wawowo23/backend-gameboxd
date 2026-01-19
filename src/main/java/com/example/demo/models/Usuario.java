@@ -8,7 +8,8 @@ public class Usuario {
     private String nombre;
     private String email;
     private String pass;
-    private ArrayList<Coleccion> colecciones;
+    private String token;
+    private ArrayList<String> colecciones;
     private ArrayList<String> favoritos;
     private ArrayList<String> deseados;
     private ArrayList<String> reviews;
@@ -56,11 +57,11 @@ public class Usuario {
         this.pass = pass;
     }
 
-    public ArrayList<Coleccion> getColecciones() {
+    public ArrayList<String> getColecciones() {
         return colecciones;
     }
 
-    public void setColecciones(ArrayList<Coleccion> colecciones) {
+    public void setColecciones(ArrayList<String> colecciones) {
         this.colecciones = colecciones;
     }
 
@@ -104,9 +105,33 @@ public class Usuario {
         this.fechaActualizacion = fechaActualizacion;
     }
 
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
     public Usuario() {
 
     }
 
-
+    @Override
+    public String toString() {
+        return "Usuario{" +
+                "id='" + id + '\'' +
+                ", nombre='" + nombre + '\'' +
+                ", email='" + email + '\'' +
+                ", pass='" + pass + '\'' +
+                ", token='" + token + '\'' +
+                ", colecciones=" + colecciones +
+                ", favoritos=" + favoritos +
+                ", deseados=" + deseados +
+                ", reviews=" + reviews +
+                ", fechaNacimiento=" + fechaNacimiento +
+                ", fechaCreacion=" + fechaCreacion +
+                ", fechaActualizacion=" + fechaActualizacion +
+                '}';
+    }
 }

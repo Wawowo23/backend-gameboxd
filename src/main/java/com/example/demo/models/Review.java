@@ -77,4 +77,18 @@ public class Review {
     public void setFechaActualizacion(Date fechaActualizacion) {
         this.fechaActualizacion = fechaActualizacion;
     }
+
+    @Override
+    public String toString() {
+        return "Review{" +
+                "id='" + id + '\'' +
+                ", nota=" + nota +
+                ", comentario='" + comentario + '\'' +
+                ", idUsuario='" + idUsuario + '\'' +
+                ", idJuego='" + idJuego + '\'' +
+                ", cantidadMeGusta=" + cantidadMeGusta +
+                ", fechaCreacion=" + fechaCreacion +
+                ", fechaActualizacion=" + fechaActualizacion +
+                '}';
+    }
 }
