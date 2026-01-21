@@ -8,6 +8,7 @@ import com.google.firebase.cloud.FirestoreClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -129,8 +130,14 @@ public class ColeccionController {
     }
 
     @PostMapping("/")
-    public ResponseEntity<Map<String, Object>> nuevaColeccion(@RequestBody Coleccion coleccion) throws ExecutionException, InterruptedException {
+    public ResponseEntity<Map<String, Object>> nuevaColeccion(@RequestBody Coleccion coleccion, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();
+
+        if (uid == null) {
+            response.put("status", "ERROR");
+            response.put("message", "Valid Token is required");
+            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        }
 
         if (coleccion == null || coleccion.getNombre() == null || coleccion.getNombre().isEmpty()) {
             response.put("status", "ERROR");
@@ -165,8 +172,15 @@ public class ColeccionController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> actualizaColeccion(@PathVariable String id, @RequestBody Coleccion coleccion) throws ExecutionException, InterruptedException {
+    public ResponseEntity<Map<String, Object>> actualizaColeccion(@PathVariable String id, @RequestBody Coleccion coleccion, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();
+
+        if (uid == null) {
+            response.put("status", "ERROR");
+            response.put("message", "Valid Token is required");
+            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        }
+        
         if (coleccion == null) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 
         Firestore db = FirestoreClient.getFirestore();
@@ -193,8 +207,17 @@ public class ColeccionController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> borraColeccion(@PathVariable String id) throws ExecutionException, InterruptedException {
+    public ResponseEntity<Map<String, Object>> borraColeccion(@PathVariable String id, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();
+
+
+
+        if (uid == null) {
+            response.put("status", "ERROR");
+            response.put("message", "Valid Token is required");
+            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        }
+
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection("colecciones").document(id);
         DocumentSnapshot snapshot = docRef.get().get();

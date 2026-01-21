@@ -116,7 +116,7 @@ public class ReviewController {
 
         if (uid == null) {
             response.put("status", "ERROR");
-            response.put("message", "Token inválido o no proporcionado");
+            response.put("message", "Valid Token is required");
             return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
         }
 

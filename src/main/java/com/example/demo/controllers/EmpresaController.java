@@ -6,6 +6,7 @@ import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -126,8 +127,15 @@ public class EmpresaController {
     }
 
     @PostMapping("/")
-    public ResponseEntity<Map<String, Object>> nuevaEmpresa(@RequestBody Empresa empresa) throws ExecutionException, InterruptedException {
+    public ResponseEntity<Map<String, Object>> nuevaEmpresa(@RequestBody Empresa empresa, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();
+
+        if (uid == null) {
+            response.put("status", "ERROR");
+            response.put("message", "Valid Token is required");
+            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        }
+
         if (empresa == null ||
                 empresa.getNombre() == null || empresa.getNombre().isEmpty() ||
                 empresa.getFechaFundacion() == null
@@ -156,8 +164,15 @@ public class EmpresaController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> actualizaEmpresa(@PathVariable String id, @RequestBody Empresa empresa) throws ExecutionException, InterruptedException {
+    public ResponseEntity<Map<String, Object>> actualizaEmpresa(@PathVariable String id, @RequestBody Empresa empresa, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();
+
+        if (uid == null) {
+            response.put("status", "ERROR");
+            response.put("message", "Valid Token is required");
+            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        }
+
         if (empresa == null) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 
         Firestore db = FirestoreClient.getFirestore();

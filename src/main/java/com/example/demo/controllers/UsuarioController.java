@@ -11,6 +11,7 @@ import com.google.firebase.cloud.FirestoreClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -169,6 +170,8 @@ public class UsuarioController {
     public ResponseEntity<Map<String, Object>> registro(@RequestBody Usuario usuario) throws ExecutionException, InterruptedException {
         response.clear();
 
+
+
         if (usuario == null ||
                 usuario.getNombre() == null || usuario.getNombre().isEmpty() ||
                 usuario.getEmail() == null || usuario.getEmail().isEmpty() ||
@@ -214,8 +217,15 @@ public class UsuarioController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> actualizaUsuario(@PathVariable String id, @RequestBody Usuario usuario) throws ExecutionException, InterruptedException {
+    public ResponseEntity<Map<String, Object>> actualizaUsuario(@PathVariable String id, @RequestBody Usuario usuario, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();
+
+        if (uid == null) {
+            response.put("status", "ERROR");
+            response.put("message", "Valid Token is required");
+            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        }
+
         if (usuario == null) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 
         Firestore db = FirestoreClient.getFirestore();
@@ -242,8 +252,15 @@ public class UsuarioController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> borraUsuario(@PathVariable String id) throws ExecutionException, InterruptedException {
+    public ResponseEntity<Map<String, Object>> borraUsuario(@PathVariable String id, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();
+
+        if (uid == null) {
+            response.put("status", "ERROR");
+            response.put("message", "Valid Token is required");
+            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        }
+
         Firestore db = FirestoreClient.getFirestore();
         DocumentReference docRef = db.collection("usuarios").document(id);
         DocumentSnapshot snapshot = docRef.get().get();
