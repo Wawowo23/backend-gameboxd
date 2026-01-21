@@ -21,6 +21,7 @@ public class JuegoController {
 
     Map<String, Object> response = new HashMap<>();
 
+    @CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
     @GetMapping("/")
     public ResponseEntity<Map<String, Object>> getAll(
             @RequestParam(required = false) String generico,
@@ -127,6 +128,7 @@ public class JuegoController {
     }
 
 
+    @CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> getById(@PathVariable String id) throws ExecutionException, InterruptedException {
         response.clear();
@@ -200,6 +202,7 @@ public class JuegoController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    @CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
     @PutMapping("/{id}")
     public ResponseEntity<Map<String, Object>> actualizaJuego(@PathVariable String id, @RequestBody Juego juego, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();
@@ -245,6 +248,7 @@ public class JuegoController {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
+    @CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> borraJuego(@PathVariable String id, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();

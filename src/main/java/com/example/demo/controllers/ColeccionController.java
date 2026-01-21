@@ -180,7 +180,7 @@ public class ColeccionController {
             response.put("message", "Valid Token is required");
             return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
         }
-        
+
         if (coleccion == null) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
 
         Firestore db = FirestoreClient.getFirestore();
