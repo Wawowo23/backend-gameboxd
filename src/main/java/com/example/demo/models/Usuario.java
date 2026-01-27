@@ -9,6 +9,7 @@ public class Usuario {
     private String email;
     private String pass;
     private String token;
+    private boolean isAdmin;
     private ArrayList<String> colecciones;
     private ArrayList<String> favoritos;
     private ArrayList<String> deseados;
@@ -16,6 +17,14 @@ public class Usuario {
     private Date fechaNacimiento;
     private Date fechaCreacion;
     private Date fechaActualizacion;
+
+    public boolean isAdmin() {
+        return isAdmin;
+    }
+
+    public void setAdmin(boolean admin) {
+        isAdmin = admin;
+    }
 
     public Date getFechaNacimiento() {
         return fechaNacimiento;

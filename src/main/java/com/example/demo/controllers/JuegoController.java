@@ -5,6 +5,8 @@ import com.example.demo.models.Review;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -22,6 +24,7 @@ public class JuegoController {
     Map<String, Object> response = new HashMap<>();
 
     @CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
+    @Cacheable(value = "juegos",key = "{#generico, #page, #limit, #sort}")
     @GetMapping("/")
     public ResponseEntity<Map<String, Object>> getAll(
             @RequestParam(required = false) String generico,
@@ -203,6 +206,7 @@ public class JuegoController {
     }
 
     @CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
+    @CacheEvict(value = "juegos", allEntries = true)
     @PutMapping("/{id}")
     public ResponseEntity<Map<String, Object>> actualizaJuego(@PathVariable String id, @RequestBody Juego juego, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();
@@ -249,6 +253,7 @@ public class JuegoController {
     }
 
     @CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
+    @CacheEvict(value = "juegos", allEntries = true)
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> borraJuego(@PathVariable String id, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();

@@ -142,6 +142,19 @@ public class UsuarioController {
             response.put("message", "Email and password required");
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
         }
+
+        if (!validaEmail(email)) {
+            response.put("status", "ERROR");
+            response.put("message", "Email is not valid");
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
+
+        if (!validaPass(pass)) {
+            response.put("status", "ERROR");
+            response.put("message", "Password is not valid");
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
+
         Firestore db = FirestoreClient.getFirestore();
         List<QueryDocumentSnapshot> documents = db.collection("usuarios").whereEqualTo("email",email).get().get().getDocuments();
         if (documents.isEmpty()) {
@@ -166,6 +179,7 @@ public class UsuarioController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+
     @PostMapping("/new")
     public ResponseEntity<Map<String, Object>> registro(@RequestBody Usuario usuario) throws ExecutionException, InterruptedException {
         response.clear();
@@ -184,6 +198,18 @@ public class UsuarioController {
         Firestore db = FirestoreClient.getFirestore();
         List<QueryDocumentSnapshot> documents = db.collection("usuarios").get().get().getDocuments();
 
+        if (!validaEmail(usuario.getEmail())) {
+            response.put("status", "ERROR");
+            response.put("message", "Email is not valid");
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
+
+        if (!validaPass(usuario.getPass())) {
+            response.put("status", "ERROR");
+            response.put("message", "Password is not valid");
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
+
         ArrayList<Usuario> usuarios = new ArrayList<>();
         for (QueryDocumentSnapshot document : documents) {
             Usuario usuarioAux = document.toObject(Usuario.class);
@@ -200,6 +226,7 @@ public class UsuarioController {
         if (usuario.getFavoritos() == null) usuario.setFavoritos(new ArrayList<>());
         if (usuario.getDeseados() == null) usuario.setDeseados(new ArrayList<>());
         if (usuario.getReviews() == null) usuario.setReviews(new ArrayList<>());
+        usuario.setAdmin(false);
 
         Date ahora = new Date();
         usuario.setFechaCreacion(ahora);
@@ -355,6 +382,15 @@ public class UsuarioController {
             docRef.set(usuario);
 
         }
+    }
+
+    private boolean validaEmail(String email) {
+        String emailRegex = "^[A-Za-z0-9+_.-]+@(.+)$";
+        return email != null && email.matches(emailRegex);
+    }
+
+    private boolean validaPass(String pass) {
+        return pass != null && pass.length() >= 8 && pass.matches(".*[A-Z].*") && pass.matches(".*[0-9].*");
     }
 
 
