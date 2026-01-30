@@ -8,6 +8,13 @@ import com.example.demo.models.Usuario;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +28,8 @@ import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api/v1/usuarios")
+@CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
+@Tag(name = "Usuarios", description = "Gestión de perfiles, autenticación (Login/Registro) y listas personales")
 public class UsuarioController {
 
     @Autowired
@@ -29,14 +38,14 @@ public class UsuarioController {
 
     Map<String,Object> response = new HashMap<>();
 
+    @Operation(summary = "Listar usuarios", description = "Devuelve una lista paginada de todos los usuarios registrados. Permite buscar por nombre o email.")
     @GetMapping("/")
     public ResponseEntity<Map<String, Object>> getAll(
-            @RequestParam(required = false) String generico,
-
-            @RequestParam(required = false, defaultValue = "10") Integer limit,
-            @RequestParam(required = false, defaultValue = "1") Integer page,
-            @RequestParam(required = false, defaultValue = "name") String sort,
-            @RequestParam(required = false) String order
+            @Parameter(description = "Búsqueda por nombre o email") @RequestParam(required = false) String generico,
+            @Parameter(description = "Usuarios por página") @RequestParam(required = false, defaultValue = "10") Integer limit,
+            @Parameter(description = "Página actual") @RequestParam(required = false, defaultValue = "1") Integer page,
+            @Parameter(description = "Campo de ordenación", schema = @Schema(allowableValues = {"date", "birth", "name"})) @RequestParam(required = false, defaultValue = "name") String sort,
+            @Parameter(description = "Dirección", schema = @Schema(allowableValues = {"asc", "desc"})) @RequestParam(required = false) String order
     ) throws ExecutionException, InterruptedException {
         response.clear();
         Firestore db = FirestoreClient.getFirestore();
@@ -111,6 +120,12 @@ public class UsuarioController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+
+    @Operation(summary = "Obtener usuario por ID", description = "Recupera los datos públicos y listas de un usuario concreto.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Usuario encontrado"),
+            @ApiResponse(responseCode = "404", description = "Usuario no existe")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> getById(@PathVariable String id) throws ExecutionException, InterruptedException {
         response.clear();
@@ -132,6 +147,12 @@ public class UsuarioController {
     }
 
 
+    @Operation(summary = "Login de usuario", description = "Autentica al usuario mediante email/password y devuelve un token JWT.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Autenticación exitosa"),
+            @ApiResponse(responseCode = "401", description = "Credenciales incorrectas"),
+            @ApiResponse(responseCode = "400", description = "Formato de email o password no válido")
+    })
     @PostMapping("/")
     public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String,String> params) throws ExecutionException, InterruptedException {
         response.clear();
@@ -180,12 +201,14 @@ public class UsuarioController {
     }
 
 
+    @Operation(summary = "Registro de nuevo usuario", description = "Crea una cuenta nueva en el sistema. No requiere token.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Usuario creado"),
+            @ApiResponse(responseCode = "400", description = "Email ya existe o validaciones fallidas")
+    })
     @PostMapping("/new")
     public ResponseEntity<Map<String, Object>> registro(@RequestBody Usuario usuario) throws ExecutionException, InterruptedException {
         response.clear();
-
-
-
         if (usuario == null ||
                 usuario.getNombre() == null || usuario.getNombre().isEmpty() ||
                 usuario.getEmail() == null || usuario.getEmail().isEmpty() ||
@@ -243,6 +266,7 @@ public class UsuarioController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    @Operation(summary = "Actualizar perfil", description = "Modifica los datos del usuario. Requiere token de sesión.", security = @SecurityRequirement(name = "bearerAuth"))
     @PutMapping("/{id}")
     public ResponseEntity<Map<String, Object>> actualizaUsuario(@PathVariable String id, @RequestBody Usuario usuario, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();
@@ -278,6 +302,7 @@ public class UsuarioController {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
+    @Operation(summary = "Borrar cuenta", description = "Elimina al usuario y todas sus reviews y colecciones asociadas.", security = @SecurityRequirement(name = "bearerAuth"))
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> borraUsuario(@PathVariable String id, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();
@@ -390,7 +415,7 @@ public class UsuarioController {
     }
 
     private boolean validaPass(String pass) {
-        return pass != null && pass.length() >= 8 && pass.matches(".*[A-Z].*") && pass.matches(".*[0-9].*");
+        return pass != null && pass.length() >= 8  && pass.matches(".*[0-9].*");
     }
 
 

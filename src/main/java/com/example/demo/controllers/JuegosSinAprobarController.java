@@ -4,7 +4,14 @@ import com.example.demo.models.Juego;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,6 +24,8 @@ import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api/v1/juegos_pendientes")
+@CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
+@Tag(name = "Moderación", description = "Gestión de propuestas de juegos pendientes de aprobación por administradores")
 public class JuegosSinAprobarController {
 
     @Autowired
@@ -24,14 +33,14 @@ public class JuegosSinAprobarController {
 
     private Map<String, Object> response = new HashMap<>();
 
-    // URL por defecto si el juego no trae una
 
-    @GetMapping("/buscar")
+    @Operation(summary = "Listar propuestas", description = "Obtiene todos los juegos sugeridos que aún no han sido aprobados para el catálogo oficial.")
+    @GetMapping("/")
     public ResponseEntity<Map<String, Object>> buscarPorTitulo(
-            @RequestParam(required = false) String titulo,
-            @RequestParam(required = false, defaultValue = "10") Integer limit,
-            @RequestParam(required = false, defaultValue = "1") Integer page,
-            @RequestParam(required = false) String order
+            @Parameter(description = "Buscar propuesta por título") @RequestParam(required = false) String titulo,
+            @Parameter(description = "Resultados por página") @RequestParam(required = false, defaultValue = "10") Integer limit,
+            @Parameter(description = "Número de página") @RequestParam(required = false, defaultValue = "1") Integer page,
+            @Parameter(description = "Orden cronológico", schema = @io.swagger.v3.oas.annotations.media.Schema(allowableValues = {"asc", "desc"})) @RequestParam(required = false) String order
     ) throws ExecutionException, InterruptedException {
         response.clear();
         Firestore db = FirestoreClient.getFirestore();
@@ -89,6 +98,7 @@ public class JuegosSinAprobarController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    @Operation(summary = "Detalle de propuesta", description = "Recupera la información completa de un juego pendiente mediante su ID.")
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> getById(@PathVariable String id) throws ExecutionException, InterruptedException {
         response.clear();
@@ -109,6 +119,11 @@ public class JuegosSinAprobarController {
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
+    @Operation(summary = "Sugerir nuevo juego", description = "Envía una propuesta de juego a la cola de moderación. Requiere estar autenticado.", security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Propuesta enviada con éxito"),
+            @ApiResponse(responseCode = "400", description = "El título es obligatorio o la empresa vinculada no existe")
+    })
     @PostMapping("/")
     public ResponseEntity<Map<String, Object>> nuevoJuego(@RequestBody Juego juego, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();
@@ -165,6 +180,7 @@ public class JuegosSinAprobarController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    @Operation(summary = "Editar propuesta", description = "Permite a un moderador o al usuario corregir datos de la sugerencia antes de su aprobación final.", security = @SecurityRequirement(name = "bearerAuth"))
     @PutMapping("/{id}")
     public ResponseEntity<Map<String, Object>> actualizaJuego(@PathVariable String id, @RequestBody Juego juego, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();
@@ -214,6 +230,11 @@ public class JuegosSinAprobarController {
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
+    @Operation(summary = "Rechazar propuesta", description = "Elimina el juego de la cola de moderación. Se usa para descartar sugerencias duplicadas o incorrectas.", security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Propuesta eliminada correctamente"),
+            @ApiResponse(responseCode = "404", description = "No se encontró la propuesta")
+    })
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> borraJuego(@PathVariable String id, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();

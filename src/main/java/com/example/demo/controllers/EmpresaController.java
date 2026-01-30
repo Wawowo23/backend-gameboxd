@@ -4,6 +4,13 @@ import com.example.demo.models.Empresa;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,20 +23,23 @@ import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api/v1/empresas")
+@CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
+@Tag(name = "Empresas", description = "Gestión del directorio de desarrolladoras y distribuidoras de videojuegos")
 public class EmpresaController {
 
     // Variable de respuesta a nivel de clase
     private Map<String, Object> response = new HashMap<>();
 
+    @Operation(summary = "Listado de empresas", description = "Recupera la lista de empresas con filtrado por nombre, nacionalidad o búsqueda general.")
     @GetMapping("/")
     public ResponseEntity<Map<String, Object>> getAll(
-            @RequestParam(required = false) String generico,
-            @RequestParam(required = false) String nombre,
-            @RequestParam(required = false) String nacionalidad,
-            @RequestParam(required = false, defaultValue = "10") Integer limit,
-            @RequestParam(required = false, defaultValue = "1") Integer page,
-            @RequestParam(required = false) String sort,
-            @RequestParam(required = false) String order
+            @Parameter(description = "Búsqueda general en nombre o nacionalidad") @RequestParam(required = false) String generico,
+            @Parameter(description = "Filtrar específicamente por nombre") @RequestParam(required = false) String nombre,
+            @Parameter(description = "Filtrar específicamente por país/nacionalidad") @RequestParam(required = false) String nacionalidad,
+            @Parameter(description = "Empresas por página") @RequestParam(required = false, defaultValue = "10") Integer limit,
+            @Parameter(description = "Página actual") @RequestParam(required = false, defaultValue = "1") Integer page,
+            @Parameter(description = "Campo de ordenación", schema = @Schema(allowableValues = {"date", "foundation", "name"})) @RequestParam(required = false) String sort,
+            @Parameter(description = "Sentido de ordenación", schema = @Schema(allowableValues = {"asc", "desc"})) @RequestParam(required = false) String order
     ) throws ExecutionException, InterruptedException {
         response.clear();
         Firestore db = FirestoreClient.getFirestore();
@@ -107,6 +117,11 @@ public class EmpresaController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    @Operation(summary = "Obtener empresa por ID", description = "Devuelve los detalles de una empresa, incluyendo sus catálogos de juegos publicados y desarrollados.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Empresa encontrada"),
+            @ApiResponse(responseCode = "404", description = "ID de empresa no encontrado")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> getById(@PathVariable String id) throws ExecutionException, InterruptedException {
         response.clear();
@@ -126,6 +141,12 @@ public class EmpresaController {
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
+    @Operation(summary = "Añadir nueva empresa", description = "Registra una empresa en el sistema. Requiere token de autenticación.", security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Empresa creada exitosamente"),
+            @ApiResponse(responseCode = "400", description = "Faltan campos requeridos (nombre o fecha fundación)"),
+            @ApiResponse(responseCode = "401", description = "Token inválido o ausente")
+    })
     @PostMapping("/")
     public ResponseEntity<Map<String, Object>> nuevaEmpresa(@RequestBody Empresa empresa, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();
@@ -163,6 +184,7 @@ public class EmpresaController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    @Operation(summary = "Actualizar empresa", description = "Modifica los datos de una empresa existente por su ID.", security = @SecurityRequirement(name = "bearerAuth"))
     @PutMapping("/{id}")
     public ResponseEntity<Map<String, Object>> actualizaEmpresa(@PathVariable String id, @RequestBody Empresa empresa, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();

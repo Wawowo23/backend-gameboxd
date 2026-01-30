@@ -1,15 +1,35 @@
 package com.example.demo.models;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.util.ArrayList;
 import java.util.Date;
 
+@Schema(description = "Representa una crítica o reseña realizada por un usuario sobre un videojuego")
 public class Review {
+
+    @Schema(description = "ID único de la review en Firestore", example = "rev_987654321")
     private String id;
+
+    @Schema(description = "Puntuación numérica (normalmente de 1 a 10)", example = "9", requiredMode = Schema.RequiredMode.REQUIRED)
     private int nota;
+
+    @Schema(description = "Texto de la reseña", example = "Una obra maestra técnica con una narrativa increíble.")
     private String comentario;
+
+    @Schema(description = "ID del usuario que escribió la review", example = "user_12345", requiredMode = Schema.RequiredMode.REQUIRED)
     private String idUsuario;
+
+    @Schema(description = "ID del juego reseñado", example = "7qXy89BzLp0q", requiredMode = Schema.RequiredMode.REQUIRED)
     private String idJuego;
-    private int cantidadMeGusta;
+
+    @Schema(description = "Lista de IDs de usuarios que han dado 'Like' a esta review")
+    private ArrayList<String> likes;
+
+    @Schema(description = "Fecha de publicación")
     private Date fechaCreacion;
+
+    @Schema(description = "Fecha de la última edición del comentario o nota")
     private Date fechaActualizacion;
 
     public Review() {}
@@ -54,12 +74,12 @@ public class Review {
         this.idJuego = idJuego;
     }
 
-    public int getCantidadMeGusta() {
-        return cantidadMeGusta;
+    public ArrayList<String> getLikes() {
+        return likes;
     }
 
-    public void setCantidadMeGusta(int cantidadMeGusta) {
-        this.cantidadMeGusta = cantidadMeGusta;
+    public void setLikes(ArrayList<String> likes) {
+        this.likes = likes;
     }
 
     public Date getFechaCreacion() {
@@ -86,7 +106,7 @@ public class Review {
                 ", comentario='" + comentario + '\'' +
                 ", idUsuario='" + idUsuario + '\'' +
                 ", idJuego='" + idJuego + '\'' +
-                ", cantidadMeGusta=" + cantidadMeGusta +
+                ", likes=" + likes +
                 ", fechaCreacion=" + fechaCreacion +
                 ", fechaActualizacion=" + fechaActualizacion +
                 '}';

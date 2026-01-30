@@ -18,6 +18,8 @@ public class JwtUtil {
     @Value("${jwt.secret}")
     private String secretSeed;
 
+
+
     public String generateToken(String uid, String name) {
         // El payload en Java se maneja como un Map (Claims)
         Map<String, Object> extraClaims = new HashMap<>();

@@ -5,7 +5,16 @@ import com.example.demo.models.Usuario;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,6 +27,8 @@ import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api/v1/colecciones")
+@CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
+@Tag(name = "Colecciones", description = "Gestión de listas personalizadas de juegos y curación de contenido")
 public class ColeccionController {
 
     @Autowired
@@ -25,14 +36,16 @@ public class ColeccionController {
 
     private Map<String, Object> response = new HashMap<>();
 
+    @Operation(summary = "Obtener todas las colecciones", description = "Lista paginada de colecciones. Usa caché para mejorar el rendimiento.")
+    @Cacheable(value = "reviews",key = "{#generico, #page, #limit, #sort}")
     @GetMapping("/")
     public ResponseEntity<Map<String, Object>> getAll(
-            @RequestParam(required = false) String generico,
-            @RequestParam(required = false) String idUsuario,
-            @RequestParam(required = false, defaultValue = "10") Integer limit,
-            @RequestParam(required = false, defaultValue = "1") Integer page,
-            @RequestParam(required = false) String sort,
-            @RequestParam(required = false) String order
+            @Parameter(description = "Búsqueda por nombre o descripción") @RequestParam(required = false) String generico,
+            @Parameter(description = "Filtrar por el creador de la lista") @RequestParam(required = false) String idUsuario,
+            @Parameter(description = "Cantidad por página") @RequestParam(required = false, defaultValue = "10") Integer limit,
+            @Parameter(description = "Número de página") @RequestParam(required = false, defaultValue = "1") Integer page,
+            @Parameter(description = "Criterio de ordenación", schema = @Schema(allowableValues = {"likes", "date", "name"})) @RequestParam(required = false) String sort,
+            @Parameter(description = "Orden (asc/desc)") @RequestParam(required = false) String order
     ) throws ExecutionException, InterruptedException {
         response.clear();
         Firestore db = FirestoreClient.getFirestore();
@@ -129,6 +142,12 @@ public class ColeccionController {
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
+    @Operation(summary = "Crear nueva colección", description = "Crea una lista vacía o con juegos. Actualiza automáticamente el perfil del usuario.", security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Colección creada correctamente"),
+            @ApiResponse(responseCode = "400", description = "Datos inválidos o usuario no encontrado"),
+            @ApiResponse(responseCode = "401", description = "No autorizado")
+    })
     @PostMapping("/")
     public ResponseEntity<Map<String, Object>> nuevaColeccion(@RequestBody Coleccion coleccion, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();
@@ -171,6 +190,8 @@ public class ColeccionController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
+    @Operation(summary = "Actualizar colección", description = "Modifica los detalles de la colección y limpia la caché de juegos.", security = @SecurityRequirement(name = "bearerAuth"))
+    @CacheEvict(value = "juegos", allEntries = true)
     @PutMapping("/{id}")
     public ResponseEntity<Map<String, Object>> actualizaColeccion(@PathVariable String id, @RequestBody Coleccion coleccion, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();
@@ -206,6 +227,8 @@ public class ColeccionController {
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
+    @Operation(summary = "Borrar colección", description = "Elimina la colección de forma permanente y desvincula la referencia del usuario.", security = @SecurityRequirement(name = "bearerAuth"))
+    @CacheEvict(value = "juegos", allEntries = true)
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> borraColeccion(@PathVariable String id, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();

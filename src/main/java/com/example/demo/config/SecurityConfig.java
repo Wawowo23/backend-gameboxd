@@ -32,7 +32,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 1. EXCEPCIONES PÚBLICAS (Sin token)
                         // Permitimos el registro para que los nuevos usuarios puedan crear su cuenta
-                        .requestMatchers("/api/v1/usuarios/new", "/api/v1/usuarios/").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html","/api/v1/usuarios/new", "/api/v1/usuarios/").permitAll()
 
                         // Permitimos ver (GET) la información sin estar logueado
                         .requestMatchers(HttpMethod.GET, "/api/v1/usuarios/**").permitAll()

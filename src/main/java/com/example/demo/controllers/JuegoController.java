@@ -5,6 +5,13 @@ import com.example.demo.models.Review;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
@@ -19,23 +26,25 @@ import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api/v1/juegos")
+@CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
+@Tag(name = "Videojuegos", description = "Catálogo completo de videojuegos, filtrado, ordenación y gestión")
 public class JuegoController {
 
     Map<String, Object> response = new HashMap<>();
 
-    @CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
+    @Operation(summary = "Listar y filtrar juegos", description = "Obtiene una lista paginada de juegos con filtros por género, etiquetas y ordenación personalizada.")
     @Cacheable(value = "juegos",key = "{#generico, #page, #limit, #sort}")
     @GetMapping("/")
     public ResponseEntity<Map<String, Object>> getAll(
-            @RequestParam(required = false) String generico,
-            @RequestParam(required = false) String nombre,
-            @RequestParam(required = false) String subtitulo,
-            @RequestParam(required = false) String genero,
-            @RequestParam(required = false) String tags,
-            @RequestParam(required = false, defaultValue = "10") Integer limit,
-            @RequestParam(required = false, defaultValue = "1") Integer page,
-            @RequestParam(required = false, defaultValue = "popularity") String sort,
-            @RequestParam(required = false, defaultValue = "asc") String order
+            @Parameter(description = "Búsqueda general en título, subtítulo, tags o géneros") @RequestParam(required = false) String generico,
+            @Parameter(description = "Filtrar por título exacto") @RequestParam(required = false) String nombre,
+            @Parameter(description = "Filtrar por subtítulo") @RequestParam(required = false) String subtitulo,
+            @Parameter(description = "Filtrar por género") @RequestParam(required = false) String genero,
+            @Parameter(description = "Filtrar por etiqueta (tag)") @RequestParam(required = false) String tags,
+            @Parameter(description = "Cantidad de resultados por página") @RequestParam(required = false, defaultValue = "10") Integer limit,
+            @Parameter(description = "Número de página (empezando en 1)") @RequestParam(required = false, defaultValue = "1") Integer page,
+            @Parameter(description = "Campo por el que ordenar", schema = @Schema(allowableValues = {"date", "popularity", "duration", "completion", "rating", "title"})) @RequestParam(required = false, defaultValue = "popularity") String sort,
+            @Parameter(description = "Sentido de la ordenación", schema = @Schema(allowableValues = {"asc", "desc"})) @RequestParam(required = false, defaultValue = "asc") String order
     ) throws ExecutionException, InterruptedException {
         response.clear();
         Firestore db = FirestoreClient.getFirestore();
@@ -131,7 +140,11 @@ public class JuegoController {
     }
 
 
-    @CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
+    @Operation(summary = "Obtener detalle de un juego", description = "Devuelve toda la información de un videojuego específico mediante su ID de Firestore.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Juego encontrado"),
+            @ApiResponse(responseCode = "404", description = "El ID proporcionado no pertenece a ningún juego")
+    })
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, Object>> getById(@PathVariable String id) throws ExecutionException, InterruptedException {
         response.clear();
@@ -151,7 +164,12 @@ public class JuegoController {
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
-    //TODO si viene sin una URL hay que poner un placeholder
+    @Operation(summary = "Crear nuevo videojuego", description = "Añade un nuevo juego a la base de datos. Requiere token de autenticación.", security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Juego creado exitosamente"),
+            @ApiResponse(responseCode = "400", description = "Faltan campos obligatorios (título, subtítulo, fecha...)"),
+            @ApiResponse(responseCode = "401", description = "No autorizado - Token inválido o ausente")
+    })
     @PostMapping("/")
     public ResponseEntity<Map<String, Object>> nuevoJuego(@RequestBody Juego juego, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();
@@ -205,7 +223,8 @@ public class JuegoController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
+    // TODO el script para pasar a lo del array de notas
+    @Operation(summary = "Actualizar un juego", description = "Modifica los datos de un juego existente. Limpia la caché automática de juegos.", security = @SecurityRequirement(name = "bearerAuth"))
     @CacheEvict(value = "juegos", allEntries = true)
     @PutMapping("/{id}")
     public ResponseEntity<Map<String, Object>> actualizaJuego(@PathVariable String id, @RequestBody Juego juego, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
@@ -252,7 +271,11 @@ public class JuegoController {
         return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    @CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
+    @Operation(summary = "Eliminar un juego", description = "Borra físicamente el juego de Firestore y limpia sus referencias en colecciones, reviews y usuarios.", security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Juego eliminado correctamente"),
+            @ApiResponse(responseCode = "404", description = "No se encontró el juego para eliminar")
+    })
     @CacheEvict(value = "juegos", allEntries = true)
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> borraJuego(@PathVariable String id, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
@@ -319,5 +342,82 @@ public class JuegoController {
         map.put("notaMedia", numNotas > 0 ? juego.getNotaMedia() : 0.0f);
 
         return map;
+    }
+
+
+    @Operation(summary = "MIGRACIÓN: Inicializar array de notas", description = "Script de un solo uso para actualizar todos los juegos antiguos que no tienen el array de notas inicializado.")
+    @PostMapping("/admin/migrar-notas")
+    public ResponseEntity<Map<String, Object>> migrarEsquemaNotas(@AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
+        response.clear();
+
+        // Opcional: Descomenta esto si quieres protegerlo solo para tu usuario admin
+        /*
+        if (uid == null || !uid.equals("TU_ID_DE_ADMIN_AQUI")) {
+             response.put("status", "ERROR");
+             response.put("message", "Unauthorized");
+             return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
+        }
+        */
+
+        Firestore db = FirestoreClient.getFirestore();
+        // Obtenemos TODOS los juegos
+        List<QueryDocumentSnapshot> documents = db.collection("videojuegos").get().get().getDocuments();
+
+        int actualizados = 0;
+        WriteBatch batch = db.batch(); // Usamos batch para ser más eficientes (máx 500 ops por batch)
+        int contadorBatch = 0;
+
+        for (QueryDocumentSnapshot document : documents) {
+            Juego juego = document.toObject(Juego.class);
+            boolean necesitaCambios = false;
+
+            // 1. Si la lista es nula, la inicializamos
+            if (juego.getNotas() == null) {
+                juego.setNotas(new ArrayList<>());
+                necesitaCambios = true;
+            }
+
+            /* 💡 OPCIONAL: MANTENER LA NOTA MEDIA ANTIGUA
+               Si el juego tiene una 'notaMedia' antigua guardada en BD pero el array está vacío,
+               podemos crear una nota "ficticia" para no perder esa valoración.
+
+               Descomenta esto si quieres conservar el rating antiguo:
+            */
+            /*
+            Double notaMediaAntigua = document.getDouble("notaMedia"); // Leer el campo antiguo crudo
+            if (juego.getNotas().isEmpty() && notaMediaAntigua != null && notaMediaAntigua > 0) {
+                // Añadimos esa nota media como una nota entera (redondeada) al array
+                juego.getNotas().add((int) Math.round(notaMediaAntigua));
+                necesitaCambios = true;
+            }
+            */
+
+            // Solo escribimos en la BD si hubo cambios
+            if (necesitaCambios) {
+                DocumentReference docRef = db.collection("videojuegos").document(document.getId());
+                batch.set(docRef, juego); // Sobreescribimos con el nuevo modelo limpio
+                actualizados++;
+                contadorBatch++;
+
+                // Firestore limita los batchs a 500 operaciones. Si llegamos, comiteamos y reseteamos.
+                if (contadorBatch == 490) {
+                    batch.commit().get();
+                    batch = db.batch();
+                    contadorBatch = 0;
+                }
+            }
+        }
+
+        // Commitear los restantes
+        if (contadorBatch > 0) {
+            batch.commit().get();
+        }
+
+        response.put("status", "OK");
+        response.put("message", "Migración completada.");
+        response.put("juegos_procesados", documents.size());
+        response.put("juegos_actualizados", actualizados);
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 }

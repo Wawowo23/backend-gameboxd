@@ -1,17 +1,38 @@
 package com.example.demo.models;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.util.ArrayList;
 import java.util.Date;
 
+@Schema(description = "Representa a una compañía de la industria (Desarrolladora o Publisher)")
 public class Empresa {
+
+    @Schema(description = "ID único de la empresa en Firestore", example = "comp_nintendo_01")
     private String id;
+
+    @Schema(description = "Nombre oficial de la empresa", example = "Nintendo EPD", requiredMode = Schema.RequiredMode.REQUIRED)
     private String nombre;
+
+    @Schema(description = "País de origen de la sede principal", example = "Japón")
     private String nacionalidad;
+
+    @Schema(description = "URL del logotipo oficial", example = "https://logo.com/nintendo.png")
     private String urlLogo;
+
+    @Schema(description = "Lista de IDs de juegos publicados por esta empresa")
     private ArrayList<String> publicados;
+
+    @Schema(description = "Lista de IDs de juegos desarrollados por esta empresa")
     private ArrayList<String> desarrollados;
+
+    @Schema(description = "Fecha en la que se fundó la compañía")
     private Date fechaFundacion;
+
+    @Schema(description = "Fecha de registro en la plataforma")
     private Date fechaCreacion;
+
+    @Schema(description = "Última modificación de los datos")
     private Date fechaActualizacion;
 
     public Empresa() {

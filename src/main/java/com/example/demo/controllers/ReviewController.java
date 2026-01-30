@@ -5,7 +5,15 @@ import com.example.demo.models.Usuario;
 import com.google.api.core.ApiFuture;
 import com.google.cloud.firestore.*;
 import com.google.firebase.cloud.FirestoreClient;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,6 +26,8 @@ import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api/v1/reviews")
+@CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
+@Tag(name = "Reviews", description = "Gestión de reseñas, valoraciones y sistema de likes")
 public class ReviewController {
 
     @Autowired
@@ -28,15 +38,17 @@ public class ReviewController {
 
     Map<String, Object> response = new HashMap<>();
 
+    @Cacheable(value = "reviews",key = "{#generico, #page, #limit, #sort}")
+    @Operation(summary = "Listado de reviews", description = "Obtiene reviews con filtros por juego, usuario o búsqueda de texto.")
     @GetMapping("/")
     public ResponseEntity<Map<String, Object>> getAll(
-            @RequestParam(required = false) String generico,
-            @RequestParam(required = false) String idJuego,
-            @RequestParam(required = false) String idUsuario,
-            @RequestParam(required = false, defaultValue = "10") Integer limit,
-            @RequestParam(required = false, defaultValue = "1") Integer page,
-            @RequestParam(required = false) String sort,
-            @RequestParam(required = false) String order
+            @Parameter(description = "Búsqueda por texto en el contenido del comentario") @RequestParam(required = false) String generico,
+            @Parameter(description = "Filtrar todas las reviews de un juego específico") @RequestParam(required = false) String idJuego,
+            @Parameter(description = "Filtrar todas las reviews de un usuario específico") @RequestParam(required = false) String idUsuario,
+            @Parameter(description = "Cantidad de resultados") @RequestParam(required = false, defaultValue = "10") Integer limit,
+            @Parameter(description = "Número de página") @RequestParam(required = false, defaultValue = "1") Integer page,
+            @Parameter(description = "Criterio de ordenación", schema = @Schema(allowableValues = {"likes", "date", "rating"})) @RequestParam(required = false) String sort,
+            @Parameter(description = "Orden", schema = @Schema(allowableValues = {"asc", "desc"})) @RequestParam(required = false) String order
     ) throws ExecutionException, InterruptedException {
         response.clear();
         Firestore db = FirestoreClient.getFirestore();
@@ -71,7 +83,7 @@ public class ReviewController {
 
                     switch (sort.toLowerCase()) {
                         case "likes":
-                            esMejor = actual.getCantidadMeGusta() > mejor.getCantidadMeGusta();
+                            esMejor = actual.getLikes().size() > mejor.getLikes().size();
                             break;
                         case "date":
                             if (actual.getFechaCreacion() != null && mejor.getFechaCreacion() != null)
@@ -110,6 +122,12 @@ public class ReviewController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    @Operation(summary = "Publicar una nueva review", description = "Crea una reseña y actualiza automáticamente la nota media del juego y el perfil del usuario.", security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Review creada y vinculada correctamente"),
+            @ApiResponse(responseCode = "400", description = "ID de juego o usuario no válidos"),
+            @ApiResponse(responseCode = "401", description = "No autorizado")
+    })
     @PostMapping("/")
     public ResponseEntity<Map<String, Object>> nuevaReview(@RequestBody Review review, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();
@@ -141,6 +159,7 @@ public class ReviewController {
 
         Firestore db = FirestoreClient.getFirestore();
 
+        if (review.getLikes() == null) review.setLikes(new ArrayList<>());
         Date ahora = new Date();
         review.setFechaCreacion(ahora);
         review.setFechaActualizacion(ahora);
@@ -157,7 +176,64 @@ public class ReviewController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    @DeleteMapping("/limpiar-juego/{idJuego}")
+    @Operation(summary = "Dar o quitar Like", description = "Añade el ID del usuario a la lista de likes si no estaba, o lo elimina si ya existía (Toggle).",security = @SecurityRequirement(name = "bearerAuth"))
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Like procesado correctamente"),
+            @ApiResponse(responseCode = "404", description = "La review no existe")
+    })
+    @PatchMapping("/like/{id}")
+    public ResponseEntity<Map<String, Object>> nuevoLike(
+            @PathVariable String id,
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal String uid
+    ) throws ExecutionException, InterruptedException {
+
+        response.clear();
+        String userId = body.get("idUsuario");
+
+        if (userId == null || userId.isEmpty()) {
+            response.put("status", "ERROR");
+            response.put("message", "idUsuario is required in the request body");
+            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        }
+
+        Firestore db = FirestoreClient.getFirestore();
+        DocumentReference docRef = db.collection("reviews").document(id);
+        DocumentSnapshot document = docRef.get().get();
+
+        if (document.exists()) {
+            Review review = document.toObject(Review.class);
+
+            if (review.getLikes() == null) {
+                review.setLikes(new ArrayList<>());
+            }
+
+            ArrayList<String> likes = review.getLikes();
+
+
+            if (likes.contains(userId)) {
+                likes.remove(userId);
+            } else {
+                likes.add(userId);
+            }
+
+            review.setLikes(likes);
+            review.setFechaActualizacion(new Date());
+
+            docRef.set(review);
+
+            response.put("status", "OK");
+            response.put("message", likes.contains(userId) ? "Like removed" : "Like added");
+            response.put("data", review);
+            return new ResponseEntity<>(response, HttpStatus.OK);
+        }
+
+        response.put("status", "ERROR");
+        response.put("message", "Review not found");
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+
+
     public ResponseEntity<Map<String, Object>> eliminaReviewsDeJuego(@PathVariable String idJuego) throws ExecutionException, InterruptedException {
         response.clear();
         Firestore db = FirestoreClient.getFirestore();

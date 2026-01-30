@@ -1,21 +1,50 @@
 package com.example.demo.models;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.util.ArrayList;
 import java.util.Date;
 
+@Schema(description = "Información detallada del perfil de usuario y sus listas personales")
 public class Usuario {
+
+    @Schema(description = "ID único del usuario", example = "user_abc123")
     private String id;
+
+    @Schema(description = "Nombre de usuario o nickname", example = "GeraltDeRivia", requiredMode = Schema.RequiredMode.REQUIRED)
     private String nombre;
+
+    @Schema(description = "Correo electrónico para login", example = "geralt@kaermorhen.com", requiredMode = Schema.RequiredMode.REQUIRED)
     private String email;
+
+    @Schema(description = "Contraseña encriptada (BCrypt)", accessMode = Schema.AccessMode.WRITE_ONLY)
     private String pass;
+
+    @Schema(description = "Token JWT generado tras el login")
     private String token;
+
+    @Schema(description = "Indica si el usuario tiene privilegios de administrador", example = "false")
     private boolean isAdmin;
+
+    @Schema(description = "Lista de IDs de las colecciones creadas por el usuario")
     private ArrayList<String> colecciones;
+
+    @Schema(description = "Lista de IDs de juegos marcados como favoritos")
     private ArrayList<String> favoritos;
+
+    @Schema(description = "Lista de IDs de juegos en la lista de deseos")
     private ArrayList<String> deseados;
+
+    @Schema(description = "Lista de IDs de reviews publicadas por el usuario")
     private ArrayList<String> reviews;
+
+    @Schema(description = "Fecha de nacimiento del usuario")
     private Date fechaNacimiento;
+
+    @Schema(description = "Fecha de registro en la plataforma")
     private Date fechaCreacion;
+
+    @Schema(description = "Última modificación del perfil")
     private Date fechaActualizacion;
 
     public boolean isAdmin() {
