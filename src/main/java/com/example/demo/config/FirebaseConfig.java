@@ -29,7 +29,6 @@ public class FirebaseConfig {
                 FirebaseApp.initializeApp(options);
             }
         } else {
-            // Si no existe (Local), podrías dejar tu código antiguo o un aviso
             System.out.println("ADVERTENCIA: Variable FIREBASE_CONFIG no encontrada. Ignorando si estás en Local.");
         }
     }

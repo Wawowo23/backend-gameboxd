@@ -27,7 +27,6 @@ import java.util.stream.Stream;
 @Tag(name = "Empresas", description = "Gestión del directorio de desarrolladoras y distribuidoras de videojuegos")
 public class EmpresaController {
 
-    // Variable de respuesta a nivel de clase
     private Map<String, Object> response = new HashMap<>();
 
     @Operation(summary = "Listado de empresas", description = "Recupera la lista de empresas con filtrado por nombre, nacionalidad o búsqueda general.")
@@ -220,7 +219,6 @@ public class EmpresaController {
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
 
-    // Métodos de ayuda (Helper) para ser llamados desde otros controladores
     public boolean insertaJuegoDesarollado(String idJuego, String idDesarrolladora) throws ExecutionException, InterruptedException {
         Firestore db = FirestoreClient.getFirestore();
         DocumentSnapshot document = db.collection("empresas").document(idDesarrolladora).get().get();

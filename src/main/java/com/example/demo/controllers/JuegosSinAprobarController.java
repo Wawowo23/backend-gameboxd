@@ -61,7 +61,6 @@ public class JuegosSinAprobarController {
 
         List<Juego> filtrados = stream.collect(Collectors.toList());
 
-        // Ordenación por fecha de creación por defecto
         for (int i = 0; i < filtrados.size() - 1; i++) {
             int indiceMejor = i;
             for (int j = i + 1; j < filtrados.size(); j++) {
@@ -144,7 +143,6 @@ public class JuegosSinAprobarController {
 
         Firestore db = FirestoreClient.getFirestore();
 
-        // Corregido: Ahora usamos la instancia inyectada y arreglado el bug del idPublisher
         if (juego.getIdDesarrolladora() != null && !juego.getIdDesarrolladora().isEmpty()) {
             if (!empresaController.insertaJuegoDesarollado(juego.getId(), juego.getIdDesarrolladora())) {
                 response.put("status", "ERROR");
@@ -153,7 +151,6 @@ public class JuegosSinAprobarController {
             }
         }
         if (juego.getIdPublisher() != null && !juego.getIdPublisher().isEmpty()) {
-            // Se corrige de idDesarrolladora a idPublisher
             if (!empresaController.insertaJuegoPublicado(juego.getId(), juego.getIdPublisher())) {
                 response.put("status", "ERROR");
                 response.put("message", "Can't find publisher with id: " + juego.getIdPublisher());
@@ -208,7 +205,6 @@ public class JuegosSinAprobarController {
 
             docRef.set(juego);
 
-            // Verificación de cambios en empresas
             if (juego.getIdDesarrolladora() != null && !juego.getIdDesarrolladora().equals(juegoExistente.getIdDesarrolladora())) {
                 if (!empresaController.insertaJuegoDesarollado(juego.getId(), juego.getIdDesarrolladora())) {
                     response.put("warning", "Can't find developer assigned");

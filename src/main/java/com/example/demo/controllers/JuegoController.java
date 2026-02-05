@@ -59,7 +59,7 @@ public class JuegoController {
 
         Stream<Juego> stream = juegos.stream();
 
-        if (generico != null) {
+        if (generico != null && !generico.isEmpty()) {
             stream = stream.filter(j ->
                     j.getTitulo().toLowerCase().contains(generico.toLowerCase()) ||
                             j.getSubtitulo().toLowerCase().contains(generico.toLowerCase()) ||
@@ -120,7 +120,7 @@ public class JuegoController {
             Collections.reverse(filtrados);
         }
 
-        int totalJuegos = filtrados.size();
+        int totalJuegos = filtrados.indexOf(filtrados.getLast());
         int start = Math.min(Math.max(0, (page - 1) * limit), totalJuegos);
         int end = Math.min(start + limit, totalJuegos);
 
@@ -131,7 +131,6 @@ public class JuegoController {
 
         response.put("status", "OK");
         response.put("page", page);
-        // Nota: He mantenido tu lógica de totalJuegos pero filtrados.size() es el conteo real.
         response.put("total", totalJuegos);
         response.put("limit", limit);
         response.put("data", dataResponse);
@@ -223,7 +222,7 @@ public class JuegoController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    // TODO el script para pasar a lo del array de notas
+
     @Operation(summary = "Actualizar un juego", description = "Modifica los datos de un juego existente. Limpia la caché automática de juegos.", security = @SecurityRequirement(name = "bearerAuth"))
     @CacheEvict(value = "juegos", allEntries = true)
     @PutMapping("/{id}")
@@ -345,19 +344,10 @@ public class JuegoController {
     }
 
 
-    @Operation(summary = "MIGRACIÓN: Inicializar array de notas", description = "Script de un solo uso para actualizar todos los juegos antiguos que no tienen el array de notas inicializado.")
+    /*@Operation(summary = "MIGRACIÓN: Inicializar array de notas", description = "Script de un solo uso para actualizar todos los juegos antiguos que no tienen el array de notas inicializado.")
     @PostMapping("/admin/migrar-notas")
     public ResponseEntity<Map<String, Object>> migrarEsquemaNotas(@AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();
-
-        // Opcional: Descomenta esto si quieres protegerlo solo para tu usuario admin
-        /*
-        if (uid == null || !uid.equals("TU_ID_DE_ADMIN_AQUI")) {
-             response.put("status", "ERROR");
-             response.put("message", "Unauthorized");
-             return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
-        }
-        */
 
         Firestore db = FirestoreClient.getFirestore();
         // Obtenemos TODOS los juegos
@@ -377,20 +367,20 @@ public class JuegoController {
                 necesitaCambios = true;
             }
 
-            /* 💡 OPCIONAL: MANTENER LA NOTA MEDIA ANTIGUA
+            *//* 💡 OPCIONAL: MANTENER LA NOTA MEDIA ANTIGUA
                Si el juego tiene una 'notaMedia' antigua guardada en BD pero el array está vacío,
                podemos crear una nota "ficticia" para no perder esa valoración.
 
                Descomenta esto si quieres conservar el rating antiguo:
-            */
-            /*
+            *//*
+            *//*
             Double notaMediaAntigua = document.getDouble("notaMedia"); // Leer el campo antiguo crudo
             if (juego.getNotas().isEmpty() && notaMediaAntigua != null && notaMediaAntigua > 0) {
                 // Añadimos esa nota media como una nota entera (redondeada) al array
                 juego.getNotas().add((int) Math.round(notaMediaAntigua));
                 necesitaCambios = true;
             }
-            */
+            *//*
 
             // Solo escribimos en la BD si hubo cambios
             if (necesitaCambios) {
@@ -419,5 +409,5 @@ public class JuegoController {
         response.put("juegos_actualizados", actualizados);
 
         return new ResponseEntity<>(response, HttpStatus.OK);
-    }
+    }*/
 }

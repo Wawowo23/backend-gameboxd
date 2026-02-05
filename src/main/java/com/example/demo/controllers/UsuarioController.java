@@ -245,7 +245,6 @@ public class UsuarioController {
         }
 
 
-        // Inicialización de listas por defecto
         if (usuario.getFavoritos() == null) usuario.setFavoritos(new ArrayList<>());
         if (usuario.getDeseados() == null) usuario.setDeseados(new ArrayList<>());
         if (usuario.getReviews() == null) usuario.setReviews(new ArrayList<>());

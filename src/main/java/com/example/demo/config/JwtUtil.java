@@ -14,26 +14,23 @@ import java.util.Map;
 @Component
 public class JwtUtil {
 
-    // Lee el secreto desde application.properties (tu .env de Java)
     @Value("${jwt.secret}")
     private String secretSeed;
 
 
 
     public String generateToken(String uid, String name) {
-        // El payload en Java se maneja como un Map (Claims)
         Map<String, Object> extraClaims = new HashMap<>();
         extraClaims.put("uid", uid);
         extraClaims.put("name", name);
 
-        // Convertimos el string secreto en una Key válida para HMAC
         SecretKey key = Keys.hmacShaKeyFor(secretSeed.getBytes(StandardCharsets.UTF_8));
 
-        long duration = 24 * 60 * 60 * 1000;
+        long duration = 3 * 24 * 60 * 60 * 1000;
 
         return Jwts.builder()
                 .claims(extraClaims)
-                .subject(uid) // Identificador principal
+                .subject(uid)
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + duration))
                 .signWith(key)

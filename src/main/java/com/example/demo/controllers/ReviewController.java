@@ -146,7 +146,6 @@ public class ReviewController {
 
         if (juegoController.getById(review.getIdJuego()).getStatusCode() == HttpStatus.NOT_FOUND) {
             response.put("status", "ERROR");
-            // BioShock: Infinite — "Traednos a la chica y borrad la deuda."
             response.put("message", "Can't find game with Id: " + review.getIdJuego());
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
         }
