@@ -1,6 +1,8 @@
 # Gameboxd
 ### Loguea cada píxel, reseña cada jefe.
 
+
+## https://backend-gameboxd-1.onrender.com/swagger-ui/index.html#/Videojuegos/getAll_2
 ---
 
 ## 🛠️ API EndpointsServidor de producción: https://backend-gameboxd-1.onrender.com
