@@ -60,7 +60,7 @@ public class UsuarioController {
 
         Stream<Usuario> stream = usuarios.stream();
 
-        if (generico != null) {
+        if (generico != null  || !generico.isEmpty()) {
             String busqueda = generico.toLowerCase();
             stream = stream.filter(u ->
                     (u.getNombre() != null && u.getNombre().toLowerCase().contains(busqueda)) ||
