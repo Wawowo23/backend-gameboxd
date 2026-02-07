@@ -36,6 +36,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/empresas/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/colecciones/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/reviews/**").permitAll()
+
+
+
+
+                        .anyRequest().authenticated()
                 )
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()));
 

@@ -17,6 +17,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -226,8 +227,10 @@ public class JuegoController {
     @Operation(summary = "Actualizar un juego", description = "Modifica los datos de un juego existente. Limpia la caché automática de juegos.", security = @SecurityRequirement(name = "bearerAuth"))
     @CacheEvict(value = "juegos", allEntries = true)
     @PutMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> actualizaJuego(@PathVariable String id, @RequestBody Juego juego, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
+    public ResponseEntity<Map<String, Object>> actualizaJuego(@PathVariable String id, @RequestBody Juego juego) throws ExecutionException, InterruptedException {
         response.clear();
+
+        String uid = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         if (uid == null) {
             response.put("status", "ERROR");
