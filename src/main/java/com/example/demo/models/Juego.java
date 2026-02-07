@@ -200,12 +200,15 @@ public class Juego {
     @Schema(description = "Cálculo en tiempo real de la calificación media del juego", example = "8.5")
     public float getNotaMedia() {
         int cont = 0,sum = 0;
-        for (Integer nota : notas) {
-            if (nota >= 0) {
-                cont++;
-                sum += nota;
+        if (notas != null) {
+            for (Integer nota : notas) {
+                if (nota >= 0) {
+                    cont++;
+                    sum += nota;
+                }
             }
         }
+
         return (float) sum / cont;
     }
 }
