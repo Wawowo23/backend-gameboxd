@@ -36,12 +36,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/empresas/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/colecciones/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/reviews/**").permitAll()
-
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/colecciones/**", "/api/v1/juegos/**").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/colecciones/**", "/api/v1/juegos/**").authenticated()
-
-
-                        .anyRequest().authenticated()
                 )
                 .headers(headers -> headers.frameOptions(frame -> frame.disable()));
 
