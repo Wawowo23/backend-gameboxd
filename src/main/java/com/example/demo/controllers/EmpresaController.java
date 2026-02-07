@@ -53,7 +53,7 @@ public class EmpresaController {
 
         Stream<Empresa> stream = empresas.stream();
 
-        if (generico != null  || !generico.isEmpty()) {
+        if (generico != null  && !generico.isEmpty()) {
             String busqueda = generico.toLowerCase();
             stream = stream.filter(e ->
                     (e.getNombre() != null && e.getNombre().toLowerCase().contains(busqueda)) ||

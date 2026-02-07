@@ -64,7 +64,7 @@ public class ReviewController {
         Stream<Review> stream = reviews.stream();
 
         //TODO arreglasr
-        if (generico != null || !generico.isEmpty()) {
+        if (generico != null && !generico.isEmpty()) {
             stream = stream.filter(r -> r.getComentario() != null &&
                     r.getComentario().toLowerCase().contains(generico.toLowerCase()));
         } else {

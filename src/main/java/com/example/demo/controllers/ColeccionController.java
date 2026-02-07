@@ -60,7 +60,7 @@ public class ColeccionController {
 
         Stream<Coleccion> stream = colecciones.stream();
 
-        if (generico != null  || !generico.isEmpty()) {
+        if (generico != null  && !generico.isEmpty()) {
             String busqueda = generico.toLowerCase();
             stream = stream.filter(c ->
                     (c.getNombre() != null && c.getNombre().toLowerCase().contains(busqueda)) ||
