@@ -40,6 +40,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
             } catch (Exception e) {
+                System.out.println("ERROR EN JWT FILTER: " + e.getMessage());
+                e.printStackTrace();
                 // Token inválido, expirado o corrupto
             }
         }
