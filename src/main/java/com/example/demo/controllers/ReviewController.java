@@ -115,10 +115,15 @@ public class ReviewController {
 
         List<Review> paginaReviews = filtrados.subList(start, end);
 
+        ArrayList<Map<String, Object>> listaReviews = new ArrayList<>();
+        for (Review review : paginaReviews) {
+            listaReviews.add(hidratarReview(review));
+        }
+
         response.put("status", "OK");
         response.put("page", page);
         response.put("totalResults", total);
-        response.put("data", paginaReviews);
+        response.put("data", listaReviews);
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
@@ -266,5 +271,28 @@ public class ReviewController {
             DocumentReference docRef = db.collection("reviews").document(id);
             docRef.delete();
         }
+    }
+
+    private Map<String, Object> hidratarReview(Review review) throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+        Map<String, Object> map = new HashMap<>();
+
+        // Copiamos datos básicos
+        map.put("id", review.getId());
+        map.put("nota", review.getNota());
+        map.put("comentario", review.getComentario());
+        map.put("idUsuario", review.getIdUsuario());
+        map.put("fechaCreacion", review.getFechaCreacion());
+        map.put("likes", review.getLikes());
+
+        // Hidratamos el JUEGO
+        DocumentSnapshot gameDoc = db.collection("juegos").document(review.getIdJuego()).get().get();
+        if (gameDoc.exists()) {
+            Map<String, Object> juego = gameDoc.getData();
+            juego.put("id", gameDoc.getId());
+            map.put("juego", juego); // Añadimos el objeto completo
+        }
+
+        return map;
     }
 }

@@ -331,8 +331,11 @@ public class JuegoController {
         map.put("plataformas", juego.getPlataformas());
         map.put("generos", juego.getGeneros());
         map.put("tags", juego.getTags());
-        map.put("idDesarrolladora", juego.getIdDesarrolladora());
-        map.put("idPublisher", juego.getIdPublisher());
+
+        // HIDRATACIÓN: Aquí pedimos los objetos completos
+        map.put("desarrolladora", obtenerDatosEmpresa(juego.getIdDesarrolladora()));
+        map.put("publisher", obtenerDatosEmpresa(juego.getIdPublisher()));
+
         map.put("fechaCreacion", juego.getFechaCreacion());
         map.put("fechaActualizacion", juego.getFechaActualizacion());
 
@@ -410,4 +413,23 @@ public class JuegoController {
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }*/
+
+    private Map<String, Object> obtenerDatosEmpresa(String idEmpresa) {
+        if (idEmpresa == null || idEmpresa.isEmpty()) return null;
+
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+            DocumentSnapshot doc = db.collection("empresas").document(idEmpresa).get().get();
+
+            if (doc.exists()) {
+                Map<String, Object> data = doc.getData();
+                data.put("id", doc.getId());
+                return data;
+            }
+        } catch (Exception e) {
+            // Si hay un error de conexión o lectura, devolvemos null para no romper la respuesta
+            System.err.println("Error al obtener empresa: " + e.getMessage());
+        }
+        return null;
+    }
 }

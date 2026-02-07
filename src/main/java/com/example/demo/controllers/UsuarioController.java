@@ -136,7 +136,7 @@ public class UsuarioController {
             Usuario usuario = document.toObject(Usuario.class);
             usuario.setId(document.getId());
             response.put("status", "OK");
-            response.put("data", usuario);
+            response.put("data", hidratarUsuario(usuario));
 
             return new ResponseEntity<>(response, HttpStatus.OK);
         }
@@ -196,7 +196,7 @@ public class UsuarioController {
         usuario.setToken(jwtUtil.generateToken(usuario.getId(), usuario.getNombre()));
         db.collection("usuarios").document(usuario.getId()).set(usuario);
         response.put("status", "OK");
-        response.put("data", usuario);
+        response.put("data", hidratarUsuario(usuario));
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
@@ -260,7 +260,7 @@ public class UsuarioController {
         usuario.setId(docRef.get().getId());
 
         response.put("status", "OK");
-        response.put("data", usuario);
+        response.put("data", hidratarUsuario(usuario));
 
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
@@ -417,5 +417,65 @@ public class UsuarioController {
         return pass != null && pass.length() >= 8  && pass.matches(".*[0-9].*");
     }
 
+
+    private Map<String, Object> hidratarUsuario(Usuario usuario) throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+        Map<String, Object> uMap = new HashMap<>();
+        uMap.put("id", usuario.getId());
+        uMap.put("nombre", usuario.getNombre());
+        uMap.put("email", usuario.getEmail());
+        uMap.put("token", usuario.getToken());
+
+        // 1. Hidratar REVIEWS + sus JUEGOS
+        List<QueryDocumentSnapshot> revDocs = db.collection("reviews")
+                .whereEqualTo("idUsuario", usuario.getId()).get().get().getDocuments();
+
+        List<Map<String, Object>> reviewsConJuego = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : revDocs) {
+            Review r = doc.toObject(Review.class);
+            r.setId(doc.getId());
+
+            // Buscamos el juego de esta review
+            Map<String, Object> rMap = new HashMap<>();
+            rMap.put("id", r.getId());
+            rMap.put("nota", r.getNota());
+            rMap.put("comentario", r.getComentario());
+
+            DocumentSnapshot gDoc = db.collection("juegos").document(r.getIdJuego()).get().get();
+            if (gDoc.exists()) {
+                Map<String, Object> jData = gDoc.getData();
+                jData.put("id", gDoc.getId());
+                rMap.put("juego", jData);
+            }
+            reviewsConJuego.add(rMap);
+        }
+        uMap.put("reviews", reviewsConJuego);
+
+        // 2. Hidratar COLECCIONES + sus JUEGOS
+        List<QueryDocumentSnapshot> colDocs = db.collection("colecciones")
+                .whereEqualTo("idUsuario", usuario.getId()).get().get().getDocuments();
+
+        List<Map<String, Object>> coleccionesConJuegos = new ArrayList<>();
+        for (QueryDocumentSnapshot doc : colDocs) {
+            Coleccion c = doc.toObject(Coleccion.class);
+            c.setId(doc.getId());
+
+            // Reutilizamos la lógica de hidratar juegos de la colección
+            Map<String, Object> cMap = new HashMap<>();
+            cMap.put("nombre", c.getNombre());
+            // ... (añade aquí los campos de la colección que necesites)
+
+            if (c.getJuegos() != null && !c.getJuegos().isEmpty()) {
+                // Consulta whereIn para traer todos los juegos de la colección de golpe
+                List<QueryDocumentSnapshot> jDocs = db.collection("juegos")
+                        .whereIn(FieldPath.documentId(), c.getJuegos()).get().get().getDocuments();
+                cMap.put("juegos", jDocs.stream().map(d -> d.getData()).collect(Collectors.toList()));
+            }
+            coleccionesConJuegos.add(cMap);
+        }
+        uMap.put("colecciones", coleccionesConJuegos);
+
+        return uMap;
+    }
 
 }

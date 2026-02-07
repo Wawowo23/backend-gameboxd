@@ -114,10 +114,15 @@ public class ColeccionController {
 
         List<Coleccion> paginaColecciones = filtrados.subList(start, end);
 
+        ArrayList<Map<String, Object>> listaColecciones = new ArrayList<>();
+        for (Coleccion coleccion : paginaColecciones) {
+            listaColecciones.add(hidratarColeccion(coleccion));
+        }
+
         response.put("status", "OK");
         response.put("page", page);
         response.put("totalResults", total);
-        response.put("data", paginaColecciones);
+        response.put("data", listaColecciones);
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
@@ -283,5 +288,35 @@ public class ColeccionController {
             DocumentReference docRef = db.collection("colecciones").document(coleccionId);
             docRef.delete();
         }
+    }
+
+    private Map<String, Object> hidratarColeccion(Coleccion coleccion) throws ExecutionException, InterruptedException {
+        Firestore db = FirestoreClient.getFirestore();
+        Map<String, Object> map = new HashMap<>();
+
+        map.put("id", coleccion.getId());
+        map.put("nombre", coleccion.getNombre());
+        map.put("descripcion", coleccion.getDescripcion());
+        map.put("idUsuario", coleccion.getIdUsuario());
+        map.put("cantidadMeGusta", coleccion.getCantidadMeGusta());
+
+        // Hidratar la lista de JUEGOS
+        if (coleccion.getJuegos() != null && !coleccion.getJuegos().isEmpty()) {
+            List<QueryDocumentSnapshot> gameDocs = db.collection("juegos")
+                    .whereIn(FieldPath.documentId(), coleccion.getJuegos())
+                    .get().get().getDocuments();
+
+            List<Map<String, Object>> juegosCompletos = gameDocs.stream().map(d -> {
+                Map<String, Object> j = d.getData();
+                j.put("id", d.getId());
+                return j;
+            }).collect(Collectors.toList());
+
+            map.put("juegos", juegosCompletos);
+        } else {
+            map.put("juegos", new ArrayList<>());
+        }
+
+        return map;
     }
 }
