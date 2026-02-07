@@ -37,7 +37,7 @@ public class ColeccionController {
     private Map<String, Object> response = new HashMap<>();
 
     @Operation(summary = "Obtener todas las colecciones", description = "Lista paginada de colecciones. Usa caché para mejorar el rendimiento.")
-    @Cacheable(value = "reviews",key = "{#generico, #page, #limit, #sort}")
+    @Cacheable(value = "colecciones",key = "{#generico, #page, #limit, #sort}")
     @GetMapping("/")
     public ResponseEntity<Map<String, Object>> getAll(
             @Parameter(description = "Búsqueda por nombre o descripción") @RequestParam(required = false) String generico,
@@ -196,7 +196,7 @@ public class ColeccionController {
     }
 
     @Operation(summary = "Actualizar colección", description = "Modifica los detalles de la colección y limpia la caché de juegos.", security = @SecurityRequirement(name = "bearerAuth"))
-    @CacheEvict(value = "juegos", allEntries = true)
+    @CacheEvict(value = "colecciones", allEntries = true)
     @PutMapping("/{id}")
     public ResponseEntity<Map<String, Object>> actualizaColeccion(@PathVariable String id, @RequestBody Coleccion coleccion, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();
@@ -302,7 +302,7 @@ public class ColeccionController {
 
         // Hidratar la lista de JUEGOS
         if (coleccion.getJuegos() != null && !coleccion.getJuegos().isEmpty()) {
-            List<QueryDocumentSnapshot> gameDocs = db.collection("juegos")
+            List<QueryDocumentSnapshot> gameDocs = db.collection("videojuegos")
                     .whereIn(FieldPath.documentId(), coleccion.getJuegos())
                     .get().get().getDocuments();
 

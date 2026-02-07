@@ -440,8 +440,13 @@ public class UsuarioController {
             rMap.put("id", r.getId());
             rMap.put("nota", r.getNota());
             rMap.put("comentario", r.getComentario());
+            rMap.put("idUsuario", r.getIdUsuario());
+            rMap.put("idJuego", r.getIdJuego());
+            rMap.put("likes", r.getLikes() != null ? r.getLikes() : new ArrayList<>());
+            rMap.put("fechaCreacion", r.getFechaCreacion());
+            rMap.put("fechaActualizacion", r.getFechaActualizacion());
 
-            DocumentSnapshot gDoc = db.collection("juegos").document(r.getIdJuego()).get().get();
+            DocumentSnapshot gDoc = db.collection("videojuegos").document(r.getIdJuego()).get().get();
             if (gDoc.exists()) {
                 Map<String, Object> jData = gDoc.getData();
                 jData.put("id", gDoc.getId());
@@ -462,12 +467,18 @@ public class UsuarioController {
 
             // Reutilizamos la lógica de hidratar juegos de la colección
             Map<String, Object> cMap = new HashMap<>();
+            cMap.put("id", c.getId());
+            cMap.put("idUsuario", c.getIdUsuario());
             cMap.put("nombre", c.getNombre());
-            // ... (añade aquí los campos de la colección que necesites)
+            cMap.put("descripcion", c.getDescripcion());
+            cMap.put("cantidadMeGusta", c.getCantidadMeGusta());
+            cMap.put("fechaCreacion", c.getFechaCreacion());
+            cMap.put("fechaActualizacion", c.getFechaActualizacion());
+
 
             if (c.getJuegos() != null && !c.getJuegos().isEmpty()) {
                 // Consulta whereIn para traer todos los juegos de la colección de golpe
-                List<QueryDocumentSnapshot> jDocs = db.collection("juegos")
+                List<QueryDocumentSnapshot> jDocs = db.collection("videojuegos")
                         .whereIn(FieldPath.documentId(), c.getJuegos()).get().get().getDocuments();
                 cMap.put("juegos", jDocs.stream().map(d -> d.getData()).collect(Collectors.toList()));
             }
@@ -475,7 +486,29 @@ public class UsuarioController {
         }
         uMap.put("colecciones", coleccionesConJuegos);
 
+        // 4. Hidratar FAVORITOS (Lista de juegos completa)
+        uMap.put("favoritos", hidratarListaJuegos(usuario.getFavoritos(), db));
+
+        // 5. Hidratar DESEADOS (Lista de juegos completa)
+        uMap.put("deseados", hidratarListaJuegos(usuario.getDeseados(), db));
+
         return uMap;
+    }
+
+    // Método auxiliar para no repetir código en favoritos y deseados
+    private List<Map<String, Object>> hidratarListaJuegos(List<String> ids, Firestore db) throws ExecutionException, InterruptedException {
+        if (ids == null || ids.isEmpty()) return new ArrayList<>();
+
+        // Firestore permite un máximo de 30 IDs en una consulta 'whereIn'
+        // Si tus listas son más grandes, habría que paginar esto o partir la lista
+        List<QueryDocumentSnapshot> jDocs = db.collection("videojuegos")
+                .whereIn(FieldPath.documentId(), ids).get().get().getDocuments();
+
+        return jDocs.stream().map(d -> {
+            Map<String, Object> m = d.getData();
+            m.put("id", d.getId());
+            return m;
+        }).collect(Collectors.toList());
     }
 
 }

@@ -286,7 +286,7 @@ public class ReviewController {
         map.put("likes", review.getLikes());
 
         // Hidratamos el JUEGO
-        DocumentSnapshot gameDoc = db.collection("juegos").document(review.getIdJuego()).get().get();
+        DocumentSnapshot gameDoc = db.collection("videojuegos").document(review.getIdJuego()).get().get();
         if (gameDoc.exists()) {
             Map<String, Object> juego = gameDoc.getData();
             juego.put("id", gameDoc.getId());
