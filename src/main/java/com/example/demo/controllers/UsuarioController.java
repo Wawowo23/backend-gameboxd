@@ -163,7 +163,7 @@ public class UsuarioController {
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
         }
 
-        if (!validaEmail(email)) {
+        /*if (!validaEmail(email)) {
             response.put("status", "ERROR");
             response.put("message", "Email is not valid");
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
@@ -173,7 +173,7 @@ public class UsuarioController {
             response.put("status", "ERROR");
             response.put("message", "Password is not valid");
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-        }
+        }*/
 
         Firestore db = FirestoreClient.getFirestore();
         List<QueryDocumentSnapshot> documents = db.collection("usuarios").whereEqualTo("email",email).get().get().getDocuments();
@@ -220,7 +220,7 @@ public class UsuarioController {
         Firestore db = FirestoreClient.getFirestore();
         List<QueryDocumentSnapshot> documents = db.collection("usuarios").get().get().getDocuments();
 
-        if (!validaEmail(usuario.getEmail())) {
+        /*if (!validaEmail(usuario.getEmail())) {
             response.put("status", "ERROR");
             response.put("message", "Email is not valid");
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
@@ -230,7 +230,7 @@ public class UsuarioController {
             response.put("status", "ERROR");
             response.put("message", "Password is not valid");
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-        }
+        }*/
 
         ArrayList<Usuario> usuarios = new ArrayList<>();
         for (QueryDocumentSnapshot document : documents) {
