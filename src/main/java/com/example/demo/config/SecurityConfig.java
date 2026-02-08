@@ -37,16 +37,22 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html","/api/v1/usuarios/new", "/api/v1/usuarios/").permitAll()
+                        // 1. PERMITIR SIEMPRE los métodos OPTIONS (Vital para CORS en móviles)
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                        // 2. Rutas públicas de Swagger y documentación
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+
+                        // 3. Login y Registro (Aseguramos POST específicamente)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/usuarios/new", "/api/v1/usuarios/").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v1/usuarios").permitAll() // Por si Flutter quita la barra
+
+                        // 4. GETs públicos (Usamos ** para evitar problemas de rutas hijas)
                         .requestMatchers(HttpMethod.GET, "/api/v1/usuarios/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/juegos/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/empresas/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/colecciones/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/reviews/**").permitAll()
-
-
-
 
                         .anyRequest().authenticated()
                 )
@@ -60,9 +66,13 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("*")); // Permite cualquier origen
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
+        // Permitimos cualquier origen de forma segura para desarrollo móvil
+        configuration.setAllowedOriginPatterns(Arrays.asList("*"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
+        // Permitir TODOS los headers (evita el 403 si el móvil envía headers extra)
+        configuration.setAllowedHeaders(Arrays.asList("*"));
+        configuration.setAllowCredentials(true);
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         return source;
