@@ -33,7 +33,6 @@ public class JuegoController {
     Map<String, Object> response = new HashMap<>();
 
     @Operation(summary = "Listar y filtrar juegos", description = "Obtiene una lista paginada de juegos con filtros por género, etiquetas y ordenación personalizada.")
-    @Cacheable(value = "juegos",key = "{#generico, #page, #limit, #sort}")
     @GetMapping("/")
     public ResponseEntity<Map<String, Object>> getAll(
             @Parameter(description = "Búsqueda general en título, subtítulo, tags o géneros") @RequestParam(required = false) String generico,
@@ -224,7 +223,6 @@ public class JuegoController {
 
 
     @Operation(summary = "Actualizar un juego", description = "Modifica los datos de un juego existente. Limpia la caché automática de juegos.", security = @SecurityRequirement(name = "bearerAuth"))
-    @CacheEvict(value = "juegos", allEntries = true)
     @PutMapping("/{id}")
     public ResponseEntity<Map<String, Object>> actualizaJuego(@PathVariable String id, @RequestBody Juego juego) throws ExecutionException, InterruptedException {
         response.clear();
@@ -277,7 +275,6 @@ public class JuegoController {
             @ApiResponse(responseCode = "204", description = "Juego eliminado correctamente"),
             @ApiResponse(responseCode = "404", description = "No se encontró el juego para eliminar")
     })
-    @CacheEvict(value = "juegos", allEntries = true)
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> borraJuego(@PathVariable String id, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();

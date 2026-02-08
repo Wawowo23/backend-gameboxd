@@ -37,7 +37,6 @@ public class ColeccionController {
     private Map<String, Object> response = new HashMap<>();
 
     @Operation(summary = "Obtener todas las colecciones", description = "Lista paginada de colecciones. Usa caché para mejorar el rendimiento.")
-    @Cacheable(value = "colecciones",key = "{#generico, #page, #limit, #sort}")
     @GetMapping("/")
     public ResponseEntity<Map<String, Object>> getAll(
             @Parameter(description = "Búsqueda por nombre o descripción") @RequestParam(required = false) String generico,
@@ -196,7 +195,6 @@ public class ColeccionController {
     }
 
     @Operation(summary = "Actualizar colección", description = "Modifica los detalles de la colección y limpia la caché de juegos.", security = @SecurityRequirement(name = "bearerAuth"))
-    @CacheEvict(value = "colecciones", allEntries = true)
     @PutMapping("/{id}")
     public ResponseEntity<Map<String, Object>> actualizaColeccion(@PathVariable String id, @RequestBody Coleccion coleccion) throws ExecutionException, InterruptedException {
         response.clear();
@@ -235,7 +233,6 @@ public class ColeccionController {
     }
 
     @Operation(summary = "Borrar colección", description = "Elimina la colección de forma permanente y desvincula la referencia del usuario.", security = @SecurityRequirement(name = "bearerAuth"))
-    @CacheEvict(value = "juegos", allEntries = true)
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, Object>> borraColeccion(@PathVariable String id, @AuthenticationPrincipal String uid) throws ExecutionException, InterruptedException {
         response.clear();

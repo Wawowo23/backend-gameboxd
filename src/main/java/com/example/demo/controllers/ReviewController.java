@@ -37,7 +37,6 @@ public class ReviewController {
 
     Map<String, Object> response = new HashMap<>();
 
-    @Cacheable(value = "reviews",key = "{#generico, #page, #limit, #sort}")
     @Operation(summary = "Listado de reviews", description = "Obtiene reviews con filtros por juego, usuario o búsqueda de texto.")
     @GetMapping("/")
     public ResponseEntity<Map<String, Object>> getAll(
