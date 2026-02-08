@@ -155,28 +155,25 @@ public class UsuarioController {
     @PostMapping("/")
     public ResponseEntity<Map<String, Object>> login(@RequestBody Map<String,String> params) throws ExecutionException, InterruptedException {
         response.clear();
-        String email = params.get("email");
-        String pass = params.get("pass");
-        if ((email == null || email.isEmpty()) || (pass == null || pass.isEmpty())) {
+
+        // El .trim() elimina espacios al principio o al final que Flutter pueda estar enviando
+        String email = (params.get("email") != null) ? params.get("email").trim() : "";
+        String pass = (params.get("pass") != null) ? params.get("pass").trim() : "";
+
+        if (email.isEmpty() || pass.isEmpty()) {
             response.put("status", "ERROR");
             response.put("message", "Email and password required");
             return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
         }
 
-        /*if (!validaEmail(email)) {
-            response.put("status", "ERROR");
-            response.put("message", "Email is not valid");
-            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-        }
-
-        if (!validaPass(pass)) {
-            response.put("status", "ERROR");
-            response.put("message", "Password is not valid");
-            return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
-        }*/
-
         Firestore db = FirestoreClient.getFirestore();
-        List<QueryDocumentSnapshot> documents = db.collection("usuarios").whereEqualTo("email",email).get().get().getDocuments();
+        // Añadimos un Log para ver exactamente qué está buscando en los logs de Render
+        System.out.println("Intentando login para: [" + email + "]");
+
+        List<QueryDocumentSnapshot> documents = db.collection("usuarios")
+                .whereEqualTo("email", email) // Si aquí hay un espacio oculto, no habrá match
+                .get().get().getDocuments();
+
         if (documents.isEmpty()) {
             response.put("status", "ERROR");
             response.put("message", "User not found");
