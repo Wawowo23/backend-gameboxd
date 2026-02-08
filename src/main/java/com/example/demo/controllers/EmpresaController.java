@@ -23,7 +23,6 @@ import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api/v1/empresas")
-@CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
 @Tag(name = "Empresas", description = "Gestión del directorio de desarrolladoras y distribuidoras de videojuegos")
 public class EmpresaController {
 

@@ -24,7 +24,6 @@ import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api/v1/juegos_pendientes")
-@CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
 @Tag(name = "Moderación", description = "Gestión de propuestas de juegos pendientes de aprobación por administradores")
 public class JuegosSinAprobarController {
 

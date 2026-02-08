@@ -26,7 +26,6 @@ import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api/v1/reviews")
-@CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
 @Tag(name = "Reviews", description = "Gestión de reseñas, valoraciones y sistema de likes")
 public class ReviewController {
 

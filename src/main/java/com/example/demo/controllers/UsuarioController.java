@@ -28,7 +28,6 @@ import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api/v1/usuarios")
-@CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
 @Tag(name = "Usuarios", description = "Gestión de perfiles, autenticación (Login/Registro) y listas personales")
 public class UsuarioController {
 

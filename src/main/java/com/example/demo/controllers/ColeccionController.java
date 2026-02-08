@@ -28,7 +28,6 @@ import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api/v1/colecciones")
-@CrossOrigin(origins = "https://backend-gameboxd-1.onrender.com")
 @Tag(name = "Colecciones", description = "Gestión de listas personalizadas de juegos y curación de contenido")
 public class ColeccionController {
 
