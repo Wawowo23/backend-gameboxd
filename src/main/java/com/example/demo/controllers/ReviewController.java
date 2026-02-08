@@ -294,7 +294,7 @@ public class ReviewController {
         DocumentSnapshot userDoc = db.collection("usuarios").document(review.getIdUsuario()).get().get();
         if (userDoc.exists()) {
             // Solo enviamos los datos públicos que nos interesan para no comprometer seguridad
-            map.put("nombreUsuario", userDoc.getString("usuario")); // o .getString("nombre") según tu modelo
+            map.put("nombreUsuario", userDoc.getString("nombre")); // o .getString("nombre") según tu modelo
         } else {
             map.put("nombreUsuario", "Sin nombre");
         }
