@@ -299,6 +299,15 @@ public class ColeccionController {
         map.put("idUsuario", coleccion.getIdUsuario());
         map.put("cantidadMeGusta", coleccion.getCantidadMeGusta());
 
+        // --- HIDRATACIÓN DEL USUARIO (Novedad) ---
+        DocumentSnapshot userDoc = db.collection("usuarios").document(coleccion.getIdUsuario()).get().get();
+        if (userDoc.exists()) {
+            // Extraemos el nombre del documento del usuario
+            map.put("nombreUsuario", userDoc.getString("nombre"));
+        } else {
+            map.put("nombreUsuario", "Usuario desconocido");
+        }
+
         // Hidratar la lista de JUEGOS
         if (coleccion.getJuegos() != null && !coleccion.getJuegos().isEmpty()) {
             List<QueryDocumentSnapshot> gameDocs = db.collection("videojuegos")

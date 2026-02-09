@@ -491,7 +491,6 @@ public class UsuarioController {
         return uMap;
     }
 
-    // Método auxiliar para no repetir código en favoritos y deseados
     private List<Map<String, Object>> hidratarListaJuegos(List<String> ids, Firestore db) throws ExecutionException, InterruptedException {
         if (ids == null || ids.isEmpty()) return new ArrayList<>();
 
