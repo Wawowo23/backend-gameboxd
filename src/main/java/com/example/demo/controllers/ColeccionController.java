@@ -298,6 +298,8 @@ public class ColeccionController {
         map.put("descripcion", coleccion.getDescripcion());
         map.put("idUsuario", coleccion.getIdUsuario());
         map.put("cantidadMeGusta", coleccion.getCantidadMeGusta());
+        map.put("fechaActualizacion", coleccion.getFechaActualizacion());
+        map.put("fechaCreacion", coleccion.getFechaCreacion());
 
         // --- HIDRATACIÓN DEL USUARIO (Novedad) ---
         DocumentSnapshot userDoc = db.collection("usuarios").document(coleccion.getIdUsuario()).get().get();
