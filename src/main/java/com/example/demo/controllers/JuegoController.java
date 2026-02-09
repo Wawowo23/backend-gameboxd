@@ -137,6 +137,36 @@ public class JuegoController {
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
+    @Operation(summary = "Obtener un juego aleatorio", description = "Selecciona un videojuego al azar de toda la base de datos.")
+    @GetMapping("/random")
+    public ResponseEntity<Map<String, Object>> getRandom() throws ExecutionException, InterruptedException {
+        response.clear();
+        Firestore db = FirestoreClient.getFirestore();
+
+        // Obtenemos todos los documentos de la colección
+        List<QueryDocumentSnapshot> documents = db.collection("videojuegos").get().get().getDocuments();
+
+        if (documents.isEmpty()) {
+            response.put("status", "ERROR");
+            response.put("message", "No se encontraron juegos en la base de datos.");
+            return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+        }
+
+        // Elegimos un índice aleatorio
+        int randomIndex = new Random().nextInt(documents.size());
+        QueryDocumentSnapshot document = documents.get(randomIndex);
+
+        // Convertimos a objeto Juego e hidratamos el ID
+        Juego juego = document.toObject(Juego.class);
+        juego.setId(document.getId());
+
+        // Devolvemos la respuesta usando tu método de mapeo existente
+        response.put("status", "OK");
+        response.put("data", mapJuegoResponse(juego));
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
+    }
+
 
     @Operation(summary = "Obtener detalle de un juego", description = "Devuelve toda la información de un videojuego específico mediante su ID de Firestore.")
     @ApiResponses(value = {
