@@ -281,6 +281,7 @@ public class UsuarioController {
         if (snapshot.exists()) {
             Usuario usuarioExistente = snapshot.toObject(Usuario.class);
 
+            usuario.setPass(usuarioExistente.getPass());
             usuario.setFechaCreacion(usuarioExistente.getFechaCreacion());
             usuario.setFechaActualizacion(new Date());
             usuario.setId(id);
