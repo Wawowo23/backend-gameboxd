@@ -174,7 +174,7 @@ public class ReviewController {
         juegoController.nuevaReview(review);
 
         response.put("status", "OK");
-        response.put("data", review);
+        response.put("data", hidratarReview(review));
 
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }

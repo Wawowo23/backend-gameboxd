@@ -189,7 +189,7 @@ public class ColeccionController {
         usuarioController.insertaColeccion(coleccion);
 
         response.put("status", "OK");
-        response.put("data", coleccion);
+        response.put("data", hidratarColeccion(coleccion));
 
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
