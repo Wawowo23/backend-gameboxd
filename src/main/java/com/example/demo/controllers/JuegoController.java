@@ -59,12 +59,26 @@ public class JuegoController {
         Stream<Juego> stream = juegos.stream();
 
         if (generico != null && !generico.isEmpty()) {
-            stream = stream.filter(j ->
-                    j.getTitulo().toLowerCase().contains(generico.toLowerCase()) ||
-                            j.getSubtitulo().toLowerCase().contains(generico.toLowerCase()) ||
-                            j.getTags().stream().anyMatch(t -> t.toLowerCase().contains(generico.toLowerCase())) ||
-                            j.getGeneros().stream().anyMatch(g -> g.toLowerCase().contains(generico.toLowerCase()))
-            );
+            String busqueda = generico.toLowerCase();
+
+            stream = stream
+                    .filter(j ->
+                            j.getTitulo().toLowerCase().contains(busqueda) ||
+                                    j.getSubtitulo().toLowerCase().contains(busqueda) ||
+                                    j.getTags().stream().anyMatch(t -> t.toLowerCase().contains(busqueda)) ||
+                                    j.getGeneros().stream().anyMatch(g -> g.toLowerCase().contains(busqueda))
+                    )
+                    .sorted((j1, j2) -> {
+                        boolean j1MatchTitulo = j1.getTitulo().toLowerCase().contains(busqueda);
+                        boolean j2MatchTitulo = j2.getTitulo().toLowerCase().contains(busqueda);
+
+                        // Si el juego 1 coincide en título y el 2 no, va primero
+                        if (j1MatchTitulo && !j2MatchTitulo) return -1;
+                        // Si el juego 2 coincide en título y el 1 no, va primero el 2
+                        if (!j1MatchTitulo && j2MatchTitulo) return 1;
+                        // Si ambos coinciden o ninguno, mantenemos el orden original (o por popularidad)
+                        return 0;
+                    });
         } else {
             if (nombre != null) stream = stream.filter(j -> j.getTitulo().toLowerCase().contains(nombre.toLowerCase()));
             if (subtitulo != null)
