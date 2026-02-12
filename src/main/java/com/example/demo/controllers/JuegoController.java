@@ -80,7 +80,12 @@ public class JuegoController {
                         return 0;
                     });
         } else {
-            if (nombre != null) stream = stream.filter(j -> j.getTitulo().toLowerCase().contains(nombre.toLowerCase()));
+            if (nombre != null) {
+                System.out.println(nombre);
+                System.out.println(stream);
+                stream = stream.filter(j -> j.getTitulo().toLowerCase().contains(nombre.toLowerCase()));
+                System.out.println(stream);
+            }
             if (subtitulo != null)
                 stream = stream.filter(j -> j.getSubtitulo().toLowerCase().contains(subtitulo.toLowerCase()));
             if (genero != null)
