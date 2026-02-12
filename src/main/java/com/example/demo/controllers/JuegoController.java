@@ -138,6 +138,8 @@ public class JuegoController {
             Collections.reverse(filtrados);
         }
 
+        System.out.println(filtrados);
+
         int totalJuegos = filtrados.size();
         int start = Math.min(Math.max(0, (page - 1) * limit), totalJuegos);
         int end = Math.min(start + limit, totalJuegos);
