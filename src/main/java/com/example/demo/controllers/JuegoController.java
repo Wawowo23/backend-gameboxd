@@ -47,111 +47,53 @@ public class JuegoController {
     ) throws ExecutionException, InterruptedException {
         response.clear();
         Firestore db = FirestoreClient.getFirestore();
-        List<QueryDocumentSnapshot> documents = db.collection("videojuegos").get().get().getDocuments();
 
-        ArrayList<Juego> juegos = new ArrayList<>();
-        for (QueryDocumentSnapshot document : documents) {
-            Juego juego = document.toObject(Juego.class);
-            juego.setId(document.getId());
-            juegos.add(juego);
+        Query query = db.collection("videojuegos");
+
+
+        Query.Direction direction = order.equalsIgnoreCase("desc") ? Query.Direction.DESCENDING : Query.Direction.ASCENDING;
+        query = query.orderBy(sort, direction);
+
+        // 3. Paginación Nativa (Limitamos ANTES de descargar)
+        // Usamos un límite mayor si hay filtros manuales, o el límite exacto si es lista limpia
+        int internalLimit = (generico != null) ? 100 : limit;
+        int offset = (page - 1) * limit;
+
+        // Si no hay búsqueda genérica, paginamos en la base de datos (Ahorra dinero/cuota)
+        if (generico == null) {
+            query = query.limit(limit).offset(offset);
+        } else {
+            query = query.limit(200); // Límite de seguridad para búsqueda manual
         }
 
-        Stream<Juego> stream = juegos.stream();
+        List<QueryDocumentSnapshot> documents = query.get().get().getDocuments();
+        List<Juego> juegos = documents.stream().map(doc -> {
+            Juego j = doc.toObject(Juego.class);
+            j.setId(doc.getId());
+            return j;
+        }).collect(Collectors.toList());
 
+        // 4. Filtro manual (Solo si es necesario)
+        List<Juego> filtrados = juegos;
         if (generico != null && !generico.isEmpty()) {
             String busqueda = generico.toLowerCase();
+            filtrados = juegos.stream()
+                    .filter(j -> j.getTitulo().toLowerCase().contains(busqueda) ||
+                            j.getSubtitulo().toLowerCase().contains(busqueda))
+                    .collect(Collectors.toList());
 
-            stream = stream
-                    .filter(j ->
-                            j.getTitulo().toLowerCase().contains(busqueda) ||
-                                    j.getSubtitulo().toLowerCase().contains(busqueda) ||
-                                    j.getTags().stream().anyMatch(t -> t.toLowerCase().contains(busqueda)) ||
-                                    j.getGeneros().stream().anyMatch(g -> g.toLowerCase().contains(busqueda))
-                    )
-                    .sorted((j1, j2) -> {
-                        boolean j1MatchTitulo = j1.getTitulo().toLowerCase().contains(busqueda);
-                        boolean j2MatchTitulo = j2.getTitulo().toLowerCase().contains(busqueda);
-
-                        // Si el juego 1 coincide en título y el 2 no, va primero
-                        if (j1MatchTitulo && !j2MatchTitulo) return -1;
-                        // Si el juego 2 coincide en título y el 1 no, va primero el 2
-                        if (!j1MatchTitulo && j2MatchTitulo) return 1;
-                        // Si ambos coinciden o ninguno, mantenemos el orden original (o por popularidad)
-                        return 0;
-                    });
-        } else {
-            if (nombre != null) {
-                System.out.println(nombre);
-                System.out.println(stream);
-                stream = stream.filter(j -> j.getTitulo().toLowerCase().contains(nombre.toLowerCase()));
-                System.out.println(stream);
-            }
-            if (subtitulo != null)
-                stream = stream.filter(j -> j.getSubtitulo().toLowerCase().contains(subtitulo.toLowerCase()));
-            if (genero != null)
-                stream = stream.filter(j -> j.getGeneros().stream().anyMatch(g -> g.toLowerCase().contains(genero.toLowerCase())));
-            if (tags != null)
-                stream = stream.filter(j -> j.getTags().stream().anyMatch(t -> t.toLowerCase().contains(tags.toLowerCase())));
+            int start = Math.min(offset, filtrados.size());
+            int end = Math.min(start + limit, filtrados.size());
+            filtrados = filtrados.subList(start, end);
         }
 
-        List<Juego> filtrados = stream.collect(Collectors.toList());
-
-        for (int i = 0; i < filtrados.size() - 1; i++) {
-            int indiceMejor = i;
-            for (int j = i + 1; j < filtrados.size(); j++) {
-
-                boolean esMejor = false;
-                Juego actual = filtrados.get(j);
-                Juego mejor = filtrados.get(indiceMejor);
-
-                switch (sort.toLowerCase()) {
-                    case "date":
-                        if (actual.getFechaLanzamiento() != null && mejor.getFechaLanzamiento() != null)
-                            esMejor = actual.getFechaLanzamiento().before(mejor.getFechaLanzamiento());
-                        break;
-                    case "popularity":
-                        esMejor = (actual.getNotas() != null ? actual.getNotas().size() : 0) > (mejor.getNotas() != null ? mejor.getNotas().size() : 0);
-                        break;
-                    case "duration":
-                        esMejor = actual.getMinutosDuracion() > mejor.getMinutosDuracion();
-                        break;
-                    case "completion":
-                        esMejor = actual.getMinutosDuracionCompleto() > mejor.getMinutosDuracionCompleto();
-                        break;
-                    case "rating":
-                        esMejor = actual.getNotaMedia() > mejor.getNotaMedia();
-                        break;
-                    case "title":
-                    default:
-                        esMejor = actual.getTitulo().compareToIgnoreCase(mejor.getTitulo()) < 0;
-                        break;
-                }
-
-                if (esMejor) indiceMejor = j;
-            }
-            Juego temp = filtrados.get(indiceMejor);
-            filtrados.set(indiceMejor, filtrados.get(i));
-            filtrados.set(i, temp);
-        }
-
-        if ("desc".equalsIgnoreCase(order)) {
-            Collections.reverse(filtrados);
-        }
-
-        System.out.println(filtrados);
-
-        int totalJuegos = filtrados.size();
-        int start = Math.min(Math.max(0, (page - 1) * limit), totalJuegos);
-        int end = Math.min(start + limit, totalJuegos);
-
-        List<Juego> paginaJuegos = filtrados.subList(start, end);
-        List<Map<String, Object>> dataResponse = paginaJuegos.stream()
+        // 5. Respuesta
+        List<Map<String, Object>> dataResponse = filtrados.stream()
                 .map(this::mapJuegoResponse)
                 .collect(Collectors.toList());
 
         response.put("status", "OK");
         response.put("page", page);
-        response.put("total", totalJuegos);
         response.put("limit", limit);
         response.put("data", dataResponse);
 
@@ -164,27 +106,27 @@ public class JuegoController {
         response.clear();
         Firestore db = FirestoreClient.getFirestore();
 
-        // Obtenemos todos los documentos de la colección
-        List<QueryDocumentSnapshot> documents = db.collection("videojuegos").get().get().getDocuments();
+        String randomId = UUID.randomUUID().toString();
+
+        Query query = db.collection("videojuegos").whereGreaterThanOrEqualTo(FieldPath.documentId(), randomId).limit(1);
+        ApiFuture<QuerySnapshot> future = query.get();
+        List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+
+        if (documents.isEmpty()) {
+            query = db.collection("videojuegos").whereLessThan(FieldPath.documentId(), randomId).limit(1);
+            documents = query.get().get().getDocuments();
+        }
 
         if (documents.isEmpty()) {
             response.put("status", "ERROR");
-            response.put("message", "No se encontraron juegos en la base de datos.");
             return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
         }
 
-        // Elegimos un índice aleatorio
-        int randomIndex = new Random().nextInt(documents.size());
-        QueryDocumentSnapshot document = documents.get(randomIndex);
+        Juego juego = documents.get(0).toObject(Juego.class);
+        juego.setId(documents.get(0).getId());
 
-        // Convertimos a objeto Juego e hidratamos el ID
-        Juego juego = document.toObject(Juego.class);
-        juego.setId(document.getId());
-
-        // Devolvemos la respuesta usando tu método de mapeo existente
         response.put("status", "OK");
         response.put("data", mapJuegoResponse(juego));
-
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
