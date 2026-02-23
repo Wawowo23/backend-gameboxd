@@ -32,104 +32,105 @@ public class JuegoController {
 
     Map<String, Object> response = new HashMap<>();
 
-    @Operation(summary = "Listar y filtrar juegos", description = "Obtiene una lista paginada de juegos con filtros por género, etiquetas y ordenación personalizada.")
+    @Operation(summary = "Listar y filtrar juegos", description = "Obtiene una lista paginada con filtros funcionales optimizados para la cuota Spark.")
     @GetMapping("/")
     public ResponseEntity<Map<String, Object>> getAll(
-            @Parameter(description = "Búsqueda general en título, subtítulo, tags o géneros") @RequestParam(required = false) String generico,
-            @Parameter(description = "Filtrar por título exacto") @RequestParam(required = false) String nombre,
-            @Parameter(description = "Filtrar por subtítulo") @RequestParam(required = false) String subtitulo,
-            @Parameter(description = "Filtrar por género") @RequestParam(required = false) String genero,
-            @Parameter(description = "Filtrar por etiqueta (tag)") @RequestParam(required = false) String tags,
-            @Parameter(description = "Cantidad de resultados por página") @RequestParam(required = false, defaultValue = "10") Integer limit,
-            @Parameter(description = "Número de página (empezando en 1)") @RequestParam(required = false, defaultValue = "1") Integer page,
-            @Parameter(description = "Campo por el que ordenar", schema = @Schema(allowableValues = {"date", "popularity", "duration", "completion", "rating", "title"})) @RequestParam(required = false, defaultValue = "popularity") String sort,
-            @Parameter(description = "Sentido de la ordenación", schema = @Schema(allowableValues = {"asc", "desc"})) @RequestParam(required = false, defaultValue = "asc") String order
+            @RequestParam(required = false) String generico,
+            @RequestParam(required = false) String nombre, // Filtro por título
+            @RequestParam(required = false) String genero,
+            @RequestParam(required = false, defaultValue = "10") Integer limit,
+            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @RequestParam(required = false, defaultValue = "popularity") String sort,
+            @RequestParam(required = false, defaultValue = "asc") String order
     ) throws ExecutionException, InterruptedException {
         response.clear();
         Firestore db = FirestoreClient.getFirestore();
 
+        // 1. LIMITACIÓN DE SEGURIDAD
+        // Forzamos un máximo de 12 para que visualmente se vea bien pero no consuma de más
+        int safeLimit = Math.min(limit, 12);
+        int offset = (page - 1) * safeLimit;
+
         Query query = db.collection("videojuegos");
 
+        // 2. FILTROS NATIVOS (Los más potentes para ahorrar)
+        // Si el usuario busca un nombre específico, lo filtramos en la base de datos directamente
+        if (nombre != null && !nombre.isEmpty()) {
+            query = query.whereEqualTo("titulo", nombre);
+        }
 
+        if (genero != null && !genero.isEmpty()) {
+            query = query.whereArrayContains("generos", genero);
+        }
+
+        // 3. ORDENACIÓN Y PAGINACIÓN EN SERVIDOR
+        // Esto es lo que evita descargar toda la base de datos
         Query.Direction direction = order.equalsIgnoreCase("desc") ? Query.Direction.DESCENDING : Query.Direction.ASCENDING;
         query = query.orderBy(sort, direction);
 
-        // 3. Paginación Nativa (Limitamos ANTES de descargar)
-        // Usamos un límite mayor si hay filtros manuales, o el límite exacto si es lista limpia
-        int internalLimit = (generico != null) ? 100 : limit;
-        int offset = (page - 1) * limit;
-
-        // Si no hay búsqueda genérica, paginamos en la base de datos (Ahorra dinero/cuota)
-        if (generico == null) {
-            query = query.limit(limit).offset(offset);
+        // Si hay búsqueda 'generico', subimos el límite a 40 para tener margen de filtrado manual
+        // Si no, limitamos al safeLimit exacto
+        if (generico != null && !generico.isEmpty()) {
+            query = query.limit(40);
         } else {
-            query = query.limit(200); // Límite de seguridad para búsqueda manual
+            query = query.limit(safeLimit).offset(offset);
         }
 
         List<QueryDocumentSnapshot> documents = query.get().get().getDocuments();
-        List<Juego> juegos = documents.stream().map(doc -> {
+
+        // Convertimos a objetos Juego
+        Stream<Juego> juegoStream = documents.stream().map(doc -> {
             Juego j = doc.toObject(Juego.class);
             j.setId(doc.getId());
             return j;
-        }).collect(Collectors.toList());
+        });
 
-        // 4. Filtro manual (Solo si es necesario)
-        List<Juego> filtrados = juegos;
+        // 4. FILTRO "GENÉRICO" (Título o Subtítulo)
+        // Solo se ejecuta si el usuario escribió algo en la barra de búsqueda general
         if (generico != null && !generico.isEmpty()) {
             String busqueda = generico.toLowerCase();
-            filtrados = juegos.stream()
-                    .filter(j -> j.getTitulo().toLowerCase().contains(busqueda) ||
-                            j.getSubtitulo().toLowerCase().contains(busqueda))
-                    .collect(Collectors.toList());
-
-            int start = Math.min(offset, filtrados.size());
-            int end = Math.min(start + limit, filtrados.size());
-            filtrados = filtrados.subList(start, end);
+            juegoStream = juegoStream.filter(j ->
+                    (j.getTitulo() != null && j.getTitulo().toLowerCase().contains(busqueda)) ||
+                            (j.getSubtitulo() != null && j.getSubtitulo().toLowerCase().contains(busqueda))
+            );
+            // Aplicamos la paginación manual sobre los resultados filtrados
+            juegoStream = juegoStream.skip(offset).limit(safeLimit);
         }
 
-        // 5. Respuesta
-        List<Map<String, Object>> dataResponse = filtrados.stream()
-                .map(this::mapJuegoResponse)
+        // 5. RESPUESTA HIDRATADA (Pero con control de errores)
+        List<Map<String, Object>> dataResponse = juegoStream
+                .map(this::mapJuegoResponse) // Usamos tu mapeador original
                 .collect(Collectors.toList());
 
         response.put("status", "OK");
+        response.put("total_peticion", dataResponse.size());
         response.put("page", page);
-        response.put("limit", limit);
         response.put("data", dataResponse);
 
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
-    @Operation(summary = "Obtener un juego aleatorio", description = "Selecciona un videojuego al azar de toda la base de datos.")
     @GetMapping("/random")
     public ResponseEntity<Map<String, Object>> getRandom() throws ExecutionException, InterruptedException {
         response.clear();
         Firestore db = FirestoreClient.getFirestore();
 
+        // Usamos el ID aleatorio (solo consume 1 lectura)
         String randomId = UUID.randomUUID().toString();
-
         Query query = db.collection("videojuegos").whereGreaterThanOrEqualTo(FieldPath.documentId(), randomId).limit(1);
-        ApiFuture<QuerySnapshot> future = query.get();
-        List<QueryDocumentSnapshot> documents = future.get().getDocuments();
+        List<QueryDocumentSnapshot> docs = query.get().get().getDocuments();
 
-        if (documents.isEmpty()) {
-            query = db.collection("videojuegos").whereLessThan(FieldPath.documentId(), randomId).limit(1);
-            documents = query.get().get().getDocuments();
+        if (docs.isEmpty()) {
+            docs = db.collection("videojuegos").whereLessThan(FieldPath.documentId(), randomId).limit(1).get().get().getDocuments();
         }
 
-        if (documents.isEmpty()) {
-            response.put("status", "ERROR");
-            return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
-        }
+        if (docs.isEmpty()) return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 
-        Juego juego = documents.get(0).toObject(Juego.class);
-        juego.setId(documents.get(0).getId());
-
-        response.put("status", "OK");
+        Juego juego = docs.get(0).toObject(Juego.class);
+        juego.setId(docs.get(0).getId());
         response.put("data", mapJuegoResponse(juego));
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
-
 
     @Operation(summary = "Obtener detalle de un juego", description = "Devuelve toda la información de un videojuego específico mediante su ID de Firestore.")
     @ApiResponses(value = {
