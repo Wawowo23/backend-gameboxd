@@ -394,4 +394,62 @@ public class JuegoController {
         }
         return null;
     }
+
+    @Operation(summary = "LIMPIEZA TOTAL: Dejar solo 20 juegos", description = "Borra todos los videojuegos de la base de datos excepto los 20 más recientes/populares.")
+    @DeleteMapping("/admin/reset-to-twenty")
+    public ResponseEntity<Map<String, Object>> resetToTwenty() {
+        response.clear();
+        try {
+            Firestore db = FirestoreClient.getFirestore();
+
+            // 1. Obtenemos TODOS los juegos (o una cantidad muy grande para limpiar)
+            // Usamos un límite alto de 1000 por si acaso tienes muchos
+            List<QueryDocumentSnapshot> todosLosJuegos = db.collection("videojuegos")
+                    .orderBy("popularity", Query.Direction.DESCENDING)
+                    .limit(1000)
+                    .get().get().getDocuments();
+
+            if (todosLosJuegos.size() <= 20) {
+                response.put("status", "OK");
+                response.put("mensaje", "Solo hay " + todosLosJuegos.size() + " juegos. No hace falta borrar nada.");
+                return new ResponseEntity<>(response, HttpStatus.OK);
+            }
+
+            // 2. Saltamos los primeros 20 y preparamos el borrado del resto
+            List<QueryDocumentSnapshot> juegosABorrar = todosLosJuegos.subList(20, todosLosJuegos.size());
+
+            WriteBatch batch = db.batch();
+            int contadorBatch = 0;
+            int totalBorrados = 0;
+
+            for (QueryDocumentSnapshot doc : juegosABorrar) {
+                batch.delete(doc.getReference());
+                contadorBatch++;
+                totalBorrados++;
+
+                // Firestore permite máximo 500 operaciones por batch
+                if (contadorBatch == 450) {
+                    batch.commit().get();
+                    batch = db.batch();
+                    contadorBatch = 0;
+                }
+            }
+
+            if (contadorBatch > 0) {
+                batch.commit().get();
+            }
+
+            response.put("status", "OK");
+            response.put("mensaje", "Limpieza profunda realizada.");
+            response.put("conservados", 20);
+            response.put("borrados", totalBorrados);
+
+            return new ResponseEntity<>(response, HttpStatus.OK);
+
+        } catch (Exception e) {
+            response.put("status", "ERROR");
+            response.put("mensaje", "Error en el proceso: " + e.getMessage());
+            return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 }
