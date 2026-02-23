@@ -395,28 +395,37 @@ public class JuegoController {
         return null;
     }
 
-    @Operation(summary = "LIMPIEZA TOTAL: Dejar solo 20 juegos", description = "Borra todos los videojuegos de la base de datos excepto los 20 más recientes/populares.")
-    @DeleteMapping("/admin/reset-to-twenty")
-    public ResponseEntity<Map<String, Object>> resetToTwenty() {
+    @Operation(summary = "LIMPIEZA DE REMESA: 22-23 Feb", description = "Borra los juegos insertados el 22 y 23 de febrero, pero conserva 20 de ellos. Los juegos más antiguos ni se tocan.")
+    @DeleteMapping("/admin/limpiar-remesa")
+    public ResponseEntity<Map<String, Object>> limpiarRemesa() {
         response.clear();
         try {
             Firestore db = FirestoreClient.getFirestore();
 
-            // 1. Obtenemos TODOS los juegos (o una cantidad muy grande para limpiar)
-            // Usamos un límite alto de 1000 por si acaso tienes muchos
-            List<QueryDocumentSnapshot> todosLosJuegos = db.collection("videojuegos")
-                    .orderBy("popularity", Query.Direction.DESCENDING)
-                    .limit(1000)
-                    .get().get().getDocuments();
+            // 1. Acotamos las fechas exactas del "desastre" (22 y 23 de febrero de 2026)
+            Calendar cal = Calendar.getInstance();
+            cal.set(2026, Calendar.FEBRUARY, 22, 0, 0, 0);
+            Date inicioRemesa = cal.getTime();
 
-            if (todosLosJuegos.size() <= 20) {
+            cal.set(2026, Calendar.FEBRUARY, 23, 23, 59, 59);
+            Date finRemesa = cal.getTime();
+
+            // 2. Buscamos SOLO los juegos creados en ese intervalo. Lo antiguo está a salvo.
+            Query query = db.collection("videojuegos")
+                    .whereGreaterThanOrEqualTo("fechaCreacion", inicioRemesa)
+                    .whereLessThanOrEqualTo("fechaCreacion", finRemesa);
+
+            List<QueryDocumentSnapshot> documentosRemesa = query.get().get().getDocuments();
+
+            // 3. Comprobamos si hay suficiente basura para borrar
+            if (documentosRemesa.size() <= 20) {
                 response.put("status", "OK");
-                response.put("mensaje", "Solo hay " + todosLosJuegos.size() + " juegos. No hace falta borrar nada.");
+                response.put("mensaje", "Solo hay " + documentosRemesa.size() + " juegos en esas fechas. Se quedan todos.");
                 return new ResponseEntity<>(response, HttpStatus.OK);
             }
 
-            // 2. Saltamos los primeros 20 y preparamos el borrado del resto
-            List<QueryDocumentSnapshot> juegosABorrar = todosLosJuegos.subList(20, todosLosJuegos.size());
+            // 4. El indulto: apartamos los primeros 20 y mandamos el resto al matadero
+            List<QueryDocumentSnapshot> juegosABorrar = documentosRemesa.subList(20, documentosRemesa.size());
 
             WriteBatch batch = db.batch();
             int contadorBatch = 0;
@@ -427,7 +436,7 @@ public class JuegoController {
                 contadorBatch++;
                 totalBorrados++;
 
-                // Firestore permite máximo 500 operaciones por batch
+                // Ejecutamos en bloques de 450 para no ahogar a Firestore
                 if (contadorBatch == 450) {
                     batch.commit().get();
                     batch = db.batch();
@@ -436,12 +445,13 @@ public class JuegoController {
             }
 
             if (contadorBatch > 0) {
-                batch.commit().get();
+                batch.commit().get(); // Rematamos los que queden
             }
 
             response.put("status", "OK");
-            response.put("mensaje", "Limpieza profunda realizada.");
-            response.put("conservados", 20);
+            response.put("mensaje", "Limpieza quirúrgica completada.");
+            response.put("juegos_encontrados_en_fechas", documentosRemesa.size());
+            response.put("salvados", 20);
             response.put("borrados", totalBorrados);
 
             return new ResponseEntity<>(response, HttpStatus.OK);
