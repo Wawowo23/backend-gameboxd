@@ -36,77 +36,46 @@ public class JuegoController {
     @GetMapping("/")
     public ResponseEntity<Map<String, Object>> getAll(
             @RequestParam(required = false) String generico,
-            @RequestParam(required = false) String nombre, // Filtro por título
-            @RequestParam(required = false) String genero,
+            @RequestParam(required = false) String nombre,
             @RequestParam(required = false, defaultValue = "10") Integer limit,
-            @RequestParam(required = false, defaultValue = "1") Integer page,
-            @RequestParam(required = false, defaultValue = "popularity") String sort,
-            @RequestParam(required = false, defaultValue = "asc") String order
+            @RequestParam(required = false, defaultValue = "1") Integer page
     ) throws ExecutionException, InterruptedException {
         response.clear();
         Firestore db = FirestoreClient.getFirestore();
+        int safeLimit = 50;
 
-        // 1. LIMITACIÓN DE SEGURIDAD
-        // Forzamos un máximo de 12 para que visualmente se vea bien pero no consuma de más
-        int safeLimit = Math.min(limit, 12);
-        int offset = (page - 1) * safeLimit;
+        Query query = db.collection("videojuegos").limit(safeLimit);
 
-        Query query = db.collection("videojuegos");
-
-        // 2. FILTROS NATIVOS (Los más potentes para ahorrar)
-        // Si el usuario busca un nombre específico, lo filtramos en la base de datos directamente
         if (nombre != null && !nombre.isEmpty()) {
             query = query.whereEqualTo("titulo", nombre);
         }
 
-        if (genero != null && !genero.isEmpty()) {
-            query = query.whereArrayContains("generos", genero);
-        }
-
-        // 3. ORDENACIÓN Y PAGINACIÓN EN SERVIDOR
-        // Esto es lo que evita descargar toda la base de datos
-        Query.Direction direction = order.equalsIgnoreCase("desc") ? Query.Direction.DESCENDING : Query.Direction.ASCENDING;
-        query = query.orderBy(sort, direction);
-
-        // Si hay búsqueda 'generico', subimos el límite a 40 para tener margen de filtrado manual
-        // Si no, limitamos al safeLimit exacto
-        if (generico != null && !generico.isEmpty()) {
-            query = query.limit(40);
-        } else {
-            query = query.limit(safeLimit).offset(offset);
-        }
-
         List<QueryDocumentSnapshot> documents = query.get().get().getDocuments();
 
-        // Convertimos a objetos Juego
-        Stream<Juego> juegoStream = documents.stream().map(doc -> {
-            Juego j = doc.toObject(Juego.class);
-            j.setId(doc.getId());
-            return j;
-        });
 
-        // 4. FILTRO "GENÉRICO" (Título o Subtítulo)
-        // Solo se ejecuta si el usuario escribió algo en la barra de búsqueda general
-        if (generico != null && !generico.isEmpty()) {
-            String busqueda = generico.toLowerCase();
-            juegoStream = juegoStream.filter(j ->
-                    (j.getTitulo() != null && j.getTitulo().toLowerCase().contains(busqueda)) ||
-                            (j.getSubtitulo() != null && j.getSubtitulo().toLowerCase().contains(busqueda))
-            );
-            // Aplicamos la paginación manual sobre los resultados filtrados
-            juegoStream = juegoStream.skip(offset).limit(safeLimit);
+        if (documents.isEmpty() && (nombre == null && generico == null)) {
+            documents = db.collection("videojuegos")
+                    .orderBy("popularity", Query.Direction.DESCENDING)
+                    .limit(safeLimit)
+                    .get().get().getDocuments();
         }
 
-        // 5. RESPUESTA HIDRATADA (Pero con control de errores)
-        List<Map<String, Object>> dataResponse = juegoStream
-                .map(this::mapJuegoResponse) // Usamos tu mapeador original
-                .collect(Collectors.toList());
+        List<Map<String, Object>> dataResponse = documents.stream()
+                .map(doc -> {
+                    Juego j = doc.toObject(Juego.class);
+                    j.setId(doc.getId());
+                    return mapJuegoResponse(j);
+                }).collect(Collectors.toList());
+
+        if (generico != null && !generico.isEmpty()) {
+            String busqueda = generico.toLowerCase();
+            dataResponse = dataResponse.stream()
+                    .filter(m -> m.get("titulo").toString().toLowerCase().contains(busqueda))
+                    .collect(Collectors.toList());
+        }
 
         response.put("status", "OK");
-        response.put("total_peticion", dataResponse.size());
-        response.put("page", page);
         response.put("data", dataResponse);
-
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
